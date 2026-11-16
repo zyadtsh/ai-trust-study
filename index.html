@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decision Study</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="review-bar" hidden></div>
+  <main id="app"></main>
+  <aside id="drawer" hidden></aside>
+
+  <noscript>This study needs JavaScript turned on.</noscript>
+
+  <!-- Classic scripts (no modules) so the page also works when opened straight from disk. -->
+  <script src="config.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/frames.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/review.js"></script>
+  <script>
+    document.title = (window.STUDY_CONFIG && window.STUDY_CONFIG.studyTitle) || document.title;
+    window.App.start();
+  </script>
+</body>
+</html>
