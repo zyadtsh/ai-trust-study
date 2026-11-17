@@ -3,15 +3,13 @@
    All study text and settings live in this one file. You can edit it
    without touching any code. Save, then reload the page.
 
-   Anything marked [PLACEHOLDER] must be replaced before the real study:
-   every item, every AI reply, the intro/consent and closing text, and
-   every questionnaire item.
+   Items and AI replies are drafts: pilot them before the real study.
 
    Text fields are plain text; a blank line starts a new paragraph.
    Fields called "html" accept simple HTML.
    ========================================================================= */
 window.STUDY_CONFIG = {
-  studyTitle: "Decision study",   // [PLACEHOLDER]
+  studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
   version: "0.1-mockup",
 
   /* -----------------------------------------------------------------------
@@ -37,23 +35,14 @@ window.STUDY_CONFIG = {
      ----------------------------------------------------------------------- */
   designOptions: {
     toolLook: {
-      label: "Tool version: how spreadsheet-like",
-      what: "Only affects the Tool interface.",
-      "default": "full",
+      label: "Tool version: look",
+      what: "Only affects the Tool interface. The Query always shows the same words as the chat message.",
+      "default": "app",
       choices: {
         light:  { label: "Light",  note: "A form with inputs, a Run button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
         medium: { label: "Medium", note: "A grid with column letters and row numbers, a formula bar and an output panel. Clearly a spreadsheet-style tool while staying uncluttered." },
-        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue (your pick). Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." }
-      }
-    },
-
-    toolQuery: {
-      label: "Tool version: wording of the query",
-      what: "What the Tool shows in its Query cell. Messaging always sends the item's askText as a message.",
-      "default": "terse",
-      choices: {
-        terse: { label: "Terse (tool-style)", note: "Uses the item's toolQuery, e.g. “Pick reply (A/B): friend cancelled plans, 3rd time this month”. Keeps the Tool free of first-person, conversational wording (your answer 1). The inputs then differ slightly in wording between frames; the AI's reply words stay identical." },
-        same:  { label: "Same as chat message", note: "Shows the exact chat message, e.g. “How should I reply to Jordan cancelling again?”. Inputs are word-for-word identical across frames, but the Tool then contains a conversational, first-person question, which is a humanlike cue." }
+        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue (your pick). Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
+        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a product title bar, the two options as input cards, a “Run analysis” button, and inputs on the left and output on the right; each AI reply opens in its own tab (Result / Factor details / Alternate run) as a report: the identical AI text (“Generated summary”) followed by a “Run details” table with Type, Selected, Run and made-up system statistics (inputs parsed, factors evaluated, comparisons, tokens, compute). No timestamps, no confidence scores. The optional buttons use the same words as in Messaging. Footer shows a session ID. Strong tool cue without the numbers/analysis feel of a grid. Note the tag restates the pick in a structured field the chat doesn't have (the chat reply already names it in words)." }
       }
     },
 
@@ -82,18 +71,18 @@ window.STUDY_CONFIG = {
       what: "Decides which of the item's two scripted replies is shown.",
       "default": "opposite",
       choices: {
-        opposite: { label: "Opposite to first answer", note: "Recommends the side the participant did not lean toward (exactly 50 → the item's default side). Every trial leaves room to move toward the advice, so weight of advice is measurable on every trial. People may notice the AI always disagrees, which can lower trust in both conditions." },
+        opposite: { label: "Opposite to first answer", note: "Recommends the side the participant did not lean toward (exactly 5, the middle → the item's default side). Every trial leaves room to move toward the advice, so weight of advice is measurable on every trial. People may notice the AI always disagrees, which can lower trust in both conditions." },
         fixed:    { label: "Fixed per item", note: "Each item always recommends its default side. More natural, but people who already agreed have nowhere to move, so those trials say little about trust, and you lose usable trials unevenly across items." }
       }
     },
 
     leanAsNumber: {
       label: "Say the lean as a number",
-      what: "Adds one sentence with the recommendation's position on the 0–100 slider.",
+      what: "Adds one sentence with the recommendation's position on the 0–10 slider.",
       "default": "off",
       choices: {
-        off: { label: "Off (words only)", note: "The lean is only given in words. Reads naturally in both frames. Weight of advice is computed from the configured position (20 or 80), which participants never see, so it is approximate." },
-        on:  { label: "On", note: "Appends e.g. “On a 0–100 scale from Reply A to Reply B, this comes out at about 80.” Makes weight of advice exact and comparable with classic advice-taking studies, but numbers read tool-like (which may shrink the difference between frames) and act as an anchor." }
+        off: { label: "Off (words only)", note: "The lean is only given in words. Reads naturally in both frames. Weight of advice is computed from the configured position (2 or 8), which participants never see, so it is approximate." },
+        on:  { label: "On", note: "Appends e.g. “On a 0–10 scale from Reply A to Reply B, this comes out at about 8.” Makes weight of advice exact and comparable with classic advice-taking studies, but numbers read tool-like (which may shrink the difference between frames) and act as an anchor." }
       }
     },
 
@@ -121,7 +110,7 @@ window.STUDY_CONFIG = {
     secondOpinionSource: {
       label: "Who gives the second opinion",
       what: "How each frame presents the source of the second AI reply.",
-      "default": "separate",
+      "default": "same",
       choices: {
         separate: { label: "A second AI", note: "Messaging: a second contact (“Assistant 2”) answers in the same thread. Tool: output labelled “model 2”. Matches the everyday meaning of a second opinion (from someone else) and avoids the first AI appearing to change its mind." },
         same:     { label: "The same AI again", note: "Messaging: the same contact answers again. Tool: output labelled “run 2”. Like regenerating an answer. With “Neutral” or “Disagrees” content, the same contact appears to contradict itself, which reads more strongly in a conversation than in a second run of a function." }
@@ -160,10 +149,10 @@ window.STUDY_CONFIG = {
 
     itemOrder: {
       label: "Item order",
-      what: "How the 6 main items are ordered (the practice item is always first). With ?pid=, orders cycle so each is used equally often.",
+      what: "How the 8 main items are ordered (the practice item is always first). With ?pid=, orders cycle so each is used equally often.",
       "default": "latin",
       choices: {
-        latin:   { label: "Balanced Latin square", note: "6 orders; each item appears in each position equally often and follows every other item equally often. Task types are mixed (never three of one type in a row). With ?pid=: 6 orders × 2 interfaces = 12 cells, so 48 people gives 4 per cell." },
+        latin:   { label: "Balanced Latin square", note: "8 orders; each item appears in each position equally often and follows every other item equally often (so the two items of a topic pair sit next to each other in 1 of every 7 transitions, the minimum this design allows). Task types are mixed (never three of one type in a row). With ?pid=: 8 orders × 2 interfaces = 16 cells, so 48 people gives 3 per cell and 64 gives 4." },
         blocked: { label: "Blocked by task type", note: "All of one task type, then the other; which type comes first alternates. Cleaner task contexts, but task type is then tied to time in session (fatigue, growing familiarity with the AI)." },
         random:  { label: "Random", note: "A fresh shuffle per person (fixed per pid). Simplest, but with 48 people some positions will be unbalanced by chance." }
       }
@@ -181,20 +170,24 @@ window.STUDY_CONFIG = {
   /* -----------------------------------------------------------------------
      SCREEN TEXT
      ----------------------------------------------------------------------- */
-  text: {   // [PLACEHOLDER] all participant-facing wording below
+  text: {   // all participant-facing wording below
+            // NOTE: the debrief (closing) describes the "Opposite to first answer"
+            // rule. If you switch "Which side the AI recommends" to "Fixed per
+            // item", rewrite that sentence.
     intro: {
       title: "Welcome",
       html:
-        '<p class="ph-note">[PLACEHOLDER: replace with your approved information sheet and consent text.]</p>' +
-        '<p>In this study you will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions. It takes about 15 minutes.</p>' +
-        '<p>We do not collect your name, email address or any other personal information. You can stop at any time.</p>',
+        '<p>This study is a class project for <b>CSCI 1952A: Human‑AI Interaction</b>.</p>' +
+        '<p><b>What you will do.</b> You will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions. It takes about 15 minutes.</p>' +
+        '<p><b>What we record.</b> Your answers, your ratings and how long each step takes. We do not collect your name, email address or any other information that identifies you. Results are used only for this class project and are reported only as group averages.</p>' +
+        '<p><b>Taking part is voluntary.</b> You can stop at any time without giving a reason; just tell the researcher. The study involves no risks beyond those of everyday life.</p>' +
+        '<p><b>Questions?</b> Ask the researcher running this session, before or after the study.</p>',
       consentLabel: "I have read the information above and agree to take part.",
       button: "Start"
     },
     instructions: {
       title: "How it works",
       html:
-        '<p class="ph-note">[PLACEHOLDER: instructions wording.]</p>' +
         '<ol class="steps">' +
         '<li>Read a short situation and the two choices.</li>' +
         '<li>Give your first answer on the slider.</li>' +
@@ -231,23 +224,22 @@ window.STUDY_CONFIG = {
     },
     endMeasures: {
       title: "About the AI",
-      html: '<p>Please rate the AI you used in this study.</p><p class="ph-note">[PLACEHOLDER: swap in the validated scales you choose.]</p>',
+      html: '<p>Please rate the AI you used in this study. There are no right or wrong answers; go with your first impression.</p>',
       button: "Continue"
     },
     scenarioRatings: {
       title: "About the decisions",
-      html: '<p>Think back to each decision you made.</p><p class="ph-note">[PLACEHOLDER: scenario-rating questions.]</p>',
+      html: '<p>Last step. Think back to each decision you made and rate how it felt to you.</p>',
       button: "Continue"
     },
     closing: {
       title: "Thank you",
       html:
-        '<p class="ph-note">[PLACEHOLDER: replace with your approved debrief.]</p>' +
-        '<p>Thank you for taking part. The AI’s replies in this study were written in advance by the researchers; no AI generated them live. ' +
-        'Which option the AI recommended was set by a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference). ' +
-        'We are studying whether the way an AI is presented changes how people use its advice.</p>' +
-        '<p class="ph-note">[If you switch “Which side the AI recommends” to “Fixed per item”, change the sentence above.]</p>' +
-        '<p>Your answers have been saved. Please let the researcher know you have finished.</p>',
+        '<p>Thank you for taking part.</p>' +
+        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as an analysis tool. Apart from that, everyone saw exactly the same recommendations.</p>' +
+        '<p><b>What was set up in advance.</b> The AI’s replies were written ahead of time by the researchers; no AI generated them live. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference). In the tool version, the technical details shown under each result (such as factors evaluated, tokens and compute) were made up to make it look like analysis software.</p>' +
+        '<p>We could not tell you this at the start, because knowing it could have changed how you responded. If you would rather your answers not be used, tell the researcher now and they will be left out of the results.</p>' +
+        '<p>Please do not share details of the study with classmates who may still take part. Your answers have been saved. Please let the researcher know you have finished.</p>',
       researcherHeading: "For the researcher"
     }
   },
@@ -257,13 +249,14 @@ window.STUDY_CONFIG = {
     left: "Definitely {A}",
     middle: "No preference",
     right: "Definitely {B}",
-    firstMarker: "your first answer"
+    firstMarker: "your first answer",
+    max: 10            // scale runs 0..max in whole steps; the middle (max / 2) is "No preference"
   },
 
   /* Used only when "Say the lean as a number" is on. */
-  leanNumberTemplate: "On a 0–100 scale from {A} to {B}, this comes out at about {pos}.",
+  leanNumberTemplate: "On a 0–10 scale from {A} to {B}, this comes out at about {pos}.",
 
-  /* Interface chrome [PLACEHOLDER names]. The AI's words come from the items, never from here. */
+  /* Interface chrome. The AI's words come from the items, never from here. */
   interfaceText: {
     chat: {
       name: "Assistant",
@@ -303,12 +296,44 @@ window.STUDY_CONFIG = {
       queryRow: "Query",
       lightTitle: "Recommendation",
       inputsLabel: "Inputs",
-      queryLabel: "Query"
+      queryLabel: "Query",
+      app: {                              // the "App" look (designOptions → toolLook)
+        title: "Decision Analysis",
+        version: "v2.1",
+        runButton: "Run analysis",
+        processing: "Processing…",
+        inputTitle: "New analysis",
+        outputTitle: "Output",
+        outputEmpty: "No output yet. Run an analysis to see results.",
+        tabMain: "Result",                // tab names; one tab per AI reply
+        kindMain: "Analysis",
+        kindFollowUp: "Factor details",
+        kindSecond: "Alternate run",
+        recommendedLabel: "Selected",
+        rationaleLabel: "Generated summary",
+        detailsLabel: "Run details",
+        // Made-up system statistics shown under each reply. They describe the
+        // run, never the answer's quality (no confidence or accuracy scores),
+        // and are fixed per item, so every participant sees the same numbers.
+        stats: {
+          inputs: "Inputs parsed",
+          inputsValue: "{options} options · {fields} fields",
+          factors: "Factors evaluated",
+          comparisons: "Pairwise comparisons",
+          tokens: "Tokens (in / out)",
+          tokensValue: "{n} / {out}",
+          compute: "Compute",
+          computeUnit: "GPU-s"
+        },
+        typeLabel: "Type",
+        runLabel: "Run",
+        sessionLabel: "Session"
+      }
     }
   },
 
   /* -----------------------------------------------------------------------
-     QUESTIONNAIRES   [PLACEHOLDER items: swap in validated scales]
+     QUESTIONNAIRES   (study-specific items, not published scales)
      ----------------------------------------------------------------------- */
   perItemRatings: {
     points: 7,
@@ -323,37 +348,21 @@ window.STUDY_CONFIG = {
   endMeasures: {
     points: 7,
     blocks: [
-      { id: "competence", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "comp_1", text: "The AI was competent." },
-        { id: "comp_2", text: "The AI was capable." },
-        { id: "comp_3", text: "The AI knew what it was talking about." }
-      ] },
-      { id: "warmth", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "warm_1", text: "The AI seemed warm." },
-        { id: "warm_2", text: "The AI seemed friendly." },
-        { id: "warm_3", text: "The AI seemed good-natured." }
-      ] },
-      { id: "trustworthiness", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "tw_1", text: "The AI seemed trustworthy." },
-        { id: "tw_2", text: "The AI seemed honest." },
-        { id: "tw_3", text: "The AI seemed to have my interests in mind." }
-      ] },
+      /* Shortened set. Cut: trustworthiness (overlaps trust), AI understood the
+         situations (asked per item already), explainability, reliance (overlaps
+         trust), and the third competence and warmth items. See git history. */
       { id: "trust", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
         { id: "trust_1", text: "I trusted the AI’s recommendations." },
         { id: "trust_2", text: "The AI’s recommendations were reliable." },
         { id: "trust_3", text: "I could depend on the AI’s recommendations." }
       ] },
-      { id: "ai_understanding", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "aiund_1", text: "The AI understood the situations it was asked about." },
-        { id: "aiund_2", text: "The AI took the details of each situation into account." }
+      { id: "competence", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
+        { id: "comp_1", text: "The AI was competent." },
+        { id: "comp_2", text: "The AI was capable." }
       ] },
-      { id: "explainability", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "expl_1", text: "I understood how the AI reached its recommendations." },
-        { id: "expl_2", text: "The AI’s reasoning was clear." }
-      ] },
-      { id: "reliance", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "rel_1", text: "I would use this AI for decisions like these." },
-        { id: "rel_2", text: "I would follow this AI’s advice in the future." }
+      { id: "warmth", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
+        { id: "warm_1", text: "The AI seemed warm." },
+        { id: "warm_2", text: "The AI seemed friendly." }
       ] },
       { id: "humanlike", kind: "pairs", prompt: "Please rate your impression of the AI on these scales.", items: [
         { id: "human_1", left: "Machinelike", right: "Humanlike" },
@@ -368,40 +377,47 @@ window.STUDY_CONFIG = {
   scenarioRatings: {
     points: 7,
     questions: [
-      { id: "scen_emotional", text: "How emotional did this decision feel?", low: "Not at all", high: "Very" },
-      { id: "scen_analytical", text: "How analytical did this decision feel?", low: "Not at all", high: "Very" }
+      /* One two-ended question instead of separate "how emotional" and "how
+         analytical" ratings: 1 = purely emotional, 7 = purely analytical. */
+      { id: "scen_type", text: "Did this decision feel more emotional or more analytical?", low: "Emotional", high: "Analytical" }
     ]
   },
 
   /* -----------------------------------------------------------------------
-     ITEMS   [PLACEHOLDER: every item and every AI reply]
+     ITEMS   (1 neutral practice item + 4 matched topic pairs, each with one
+             emotional and one analytical item)
 
      Each item:
-       id, type ("practice" | "emotional" | "analytical"), title (short
+       id, type ("practice" | "emotional" | "analytical"), pair (topic the
+       emotional and analytical versions share; for your notes), title (short
        reminder used in the end ratings), scenario, question (slider
        question), askText (the message the participant sends in Messaging),
-       toolQuery (optional terse version shown in the Tool's Query cell),
        optionA / optionB { label, name, text },
        attributes: [{ label, a, b }]   (analytical items; [] otherwise)
-       defaultSide "A" | "B"  (fixed mode, or when the first answer is 50)
-       strength  (where the recommendation sits: B -> strength, A -> 100 - strength) [PLACEHOLDER: 80 everywhere]
+       defaultSide "A" | "B"  (fixed mode, or when the first answer is 5, the middle)
+       strength  (where the recommendation sits on the 0–10 scale: B -> strength, A -> 10 - strength) (8 everywhere)
        replies { A, B }          main AI reply arguing for each side
        followUp { A, B }         "Get an explanation" text (only if that option is on)
        secondOpinion { A, B, neutral }
      The same words are shown in both interfaces.
+
+     Writing rules (reviewer mode flags lengths that drift apart):
+       - Both options defensible; no correct answer.
+       - Paired emotional and analytical scenarios within about 15% in length.
+       - Replies: the pick, two reasons, the pick restated; A and B within
+         about 10% in length. Impersonal (no "I"), no facts beyond the scenario.
+       - Explanations and second opinions within about 15% of each other.
      ----------------------------------------------------------------------- */
   items: [
     /* ITEMS_START */
-    /* ---- P1 (practice) [PLACEHOLDER] ---- */
+    /* ---- P1 (practice, neutral: neither emotional nor analytical) ---- */
     {
       "id": "P1",
       "type": "practice",
-      "placeholder": true,
       "title": "Snack for study group",
       "scenario": "You are meeting four classmates in a library study room on Thursday evening to review for a midterm, and everyone agreed to bring something small to share. You have time to grab one thing on the way. You want something easy to pass around, that will not make a mess on shared notes, and that most people will actually eat during a two-hour session. The store next to the library has both options in stock.",
       "question": "Which would you choose?",
       "askText": "Which snack should I bring to the study group?",
-      "toolQuery": "Select option (A/B): snack for 2-hour study group",
       "optionA": {
         "label": "Option A",
         "name": "Bag of pretzels",
@@ -414,7 +430,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "A",
-      "strength": 80,
+      "strength": 8,
       "replies": {
         "A": "Option A suits this session better: a bag of pretzels can sit open in the middle of the table, people can grab a handful without stopping, and there is nothing to peel or throw away near the notes. Option A is the better pick.",
         "B": "Option B suits this session better: clementines come in single servings, so each person can take one without passing a bag around, they leave no salty crumbs on notes or laptops, and nearly everyone likes them. Option B is the better pick."
@@ -425,307 +441,413 @@ window.STUDY_CONFIG = {
       },
       "secondOpinion": {
         "A": "Looking at the full two hours: one big bag lasts the whole session, with people taking a few at a time, while fruit tends to get eaten in one round near the start. That favors Option A.",
-        "B": "Looking at the second hour: after an hour of reviewing, something fresh and juicy tends to go over better than another salty handful. That favors Option B.",
+        "B": "Looking at the second hour: after an hour of reviewing, something fresh and juicy tends to go over better than another salty handful, and peeling one takes only a moment. That favors Option B.",
         "neutral": "Both work well. Pretzels are easy to share from one bag and leave no peels behind; clementines leave no crumbs and feel fresher halfway through a long session. Either choice is reasonable, and neither is clearly better here."
       },
       "designNote": "Both snacks are cheap, common, and easy to share, with offsetting downsides (crumbs versus peels), so there is no correct answer."
     },
 
-    /* ---- E1 (emotional) [PLACEHOLDER] ---- */
+    /* ---- E1 (emotional, pair 1: roommates) ---- */
     {
       "id": "E1",
       "type": "emotional",
-      "placeholder": true,
-      "title": "Friend cancels plans again",
-      "scenario": "Your friend Jordan was supposed to meet you for dinner at a new ramen place tonight, a plan the two of you made a week ago. Forty minutes before, Jordan messages to say something came up and asks to reschedule. This is the third time this month. You like Jordan and want to stay close, but the pattern is starting to bother you, and you are deciding how to reply.",
-      "question": "Which reply would you send?",
-      "askText": "How should I reply to Jordan cancelling again?",
-      "toolQuery": "Select reply (A/B): friend cancelled plans, 3rd time this month",
+      "pair": "roommates",
+      "title": "Roommate's late-night calls",
+      "scenario": "You share a two-bedroom apartment with your roommate Sam, and you get along well. For a few weeks, Sam has taken long video calls in the living room until about 1 a.m. on weeknights, and the sound carries into your room. You have 8 a.m. classes three days a week and are starting to feel worn out. You have not said anything yet. You are deciding what to text Sam.",
+      "question": "Which message would you send?",
+      "askText": "How should I bring up Sam's late-night calls?",
       "optionA": {
-        "label": "Reply A",
-        "name": "Say it bothers you",
-        "text": "no worries about tonight, but honestly this is the third time this month and it's kinda starting to bug me. can we pick a time you're sure about?"
+        "label": "Option A",
+        "name": "Ask directly",
+        "text": "hey, could you take your late calls in your room after 11 on weeknights? the sound carries and I have 8ams"
       },
       "optionB": {
-        "label": "Reply B",
-        "name": "Keep it light",
-        "text": "all good, things come up! let's just find another night soon, maybe sometime next week? let me know what works for you"
+        "label": "Option B",
+        "name": "Suggest shared quiet hours",
+        "text": "hey, would you be up for setting some quiet hours for both of us on weeknights? I've been having trouble sleeping before my 8ams"
       },
       "attributes": [],
       "defaultSide": "B",
-      "strength": 80,
+      "strength": 8,
       "replies": {
-        "A": "Reply A fits better here. This is the third cancellation this month, and saying so now, while it is still a small irritation, keeps it from building into resentment later. The wording stays friendly, opens with \"no worries,\" and asks for a time Jordan is sure about, which is a fair request rather than a complaint. Reply A is the better one to send.",
-        "B": "Reply B fits better here. A cancellation forty minutes out is annoying, but a warm, easy reply keeps the friendship relaxed and gives Jordan room to make it up next time. Raising the pattern in a quick reply can land harder than intended; it can come up later, in person, if it keeps happening. Reply B is the better one to send."
+        "A": "Option A is the clearer message. It names the specific problem, the late calls, and offers a simple fix: taking them in Sam's room after 11 on weeknights. A concrete request is easy to agree to and hard to misread, and the reason given, 8 a.m. classes, makes it practical rather than personal. Option A is the better message to send.",
+        "B": "Option B is the gentler message. Framing quiet hours as a rule for both roommates avoids singling Sam out, which keeps a good relationship from feeling like a complaint. It still mentions the 8 a.m. classes, so the reason is clear, and it invites Sam to help shape the solution rather than simply comply. Option B is the better message to send."
       },
       "followUp": {
-        "A": "Naming the pattern also gives Jordan useful information. People who cancel a lot may not realize how often it happens, and a calm mention of \"third time this month\" lets Jordan adjust before the friendship starts to feel one-sided.",
-        "B": "Reply B also proposes a concrete next step, a night next week, which keeps the plan alive instead of dwelling on what went wrong. Starting from goodwill tends to make any later conversation about the pattern easier, because Jordan has no reason to feel defensive."
+        "A": "A shared quiet-hours proposal can also be vaguer than intended. Sam might agree to quiet hours without connecting them to the calls, and the problem continues. Naming the calls directly, as Option A does, makes the change clear, so a second and more awkward conversation is less likely.",
+        "B": "Sam has never been told the calls are a problem, so a first message that sounds like a correction can feel sudden. Option B raises the issue as a shared arrangement, which leaves room for Sam to mention habits of their own, and makes the agreement feel mutual rather than one-sided."
       },
       "secondOpinion": {
-        "A": "Consider your side of the plan: you kept tonight free for a week, and three plans in one month have now fallen through. Reply A says that plainly without blaming Jordan, and it treats the friendship as solid enough to handle an honest comment. That makes Reply A the stronger choice.",
-        "B": "Consider what is still unknown: Jordan has not said what came up, and the reason may be a fair one. Reply B gives Jordan the benefit of the doubt and leaves room to hear the explanation before deciding whether the pattern is worth raising. That makes Reply B the stronger choice.",
-        "neutral": "Both replies are reasonable. Reply A's strength is that it names the pattern early, while it is still easy to talk about. Reply B's strength is that it keeps things warm and saves the bigger conversation for a calmer moment. Neither is clearly better here; it depends on what matters more to you."
+        "A": "Looking at the timing: the problem has run for weeks, and the early classes are already taking a toll. A specific request gets the fastest change, and roommates who get along well can usually handle a direct, polite ask without strain. Option A is the stronger choice.",
+        "B": "Looking at the relationship: the two roommates get along well, and living together lasts the rest of the year. A message that treats quiet hours as something both share protects that, while still making the sleep problem clear. Option B is the stronger choice.",
+        "neutral": "Both messages are polite and give the same reason. Option A's strength is clarity: it names the calls and asks for one specific change. Option B's strength is tone: it frames the fix as shared and invites Sam in. Either is a reasonable start, and neither is clearly better."
       },
-      "designNote": "Naming a repeated pattern and extending a friend some grace are both widely endorsed responses, and both replies are polite and offer to reschedule."
+      "designNote": "Both messages are polite and cite the same reason; they trade directness against a softer, shared framing."
     },
 
-    /* ---- E2 (emotional) [PLACEHOLDER] ---- */
-    {
-      "id": "E2",
-      "type": "emotional",
-      "placeholder": true,
-      "title": "Roommate takes your groceries",
-      "scenario": "Your roommate Sam has been eating your groceries lately: first some yogurt, then most of a box of cereal, and this morning the last of your orange juice. Sam just wrote: \"hey, finished your OJ this morning, sorry, will grab some later.\" You get along well with Sam and split chores fairly, but you plan your food for the week and want this to stop without making things tense at home.",
-      "question": "Which reply would you send?",
-      "askText": "Sam keeps eating my groceries. How should I reply this time?",
-      "toolQuery": "Select reply (A/B): roommate using groceries without asking",
-      "optionA": {
-        "label": "Reply A",
-        "name": "Ask to check first",
-        "text": "thanks for telling me! honestly though it's been happening a lot lately, could you check with me before taking my stuff from now on?"
-      },
-      "optionB": {
-        "label": "Reply B",
-        "name": "Suggest a shared shelf",
-        "text": "no stress, thanks for the heads up! maybe we could set up a shared shelf for stuff we both use and keep the rest separate?"
-      },
-      "attributes": [],
-      "defaultSide": "A",
-      "strength": 80,
-      "replies": {
-        "A": "Reply A fits better here. This is the third item in a short stretch, and a plain request to check first addresses exactly that, without blaming Sam or turning it into a bigger issue. It opens by thanking Sam for being upfront, which keeps the tone friendly, and sets one simple rule that is easy to follow. Reply A is the better one to send.",
-        "B": "Reply B fits better here. Sam was upfront about the juice, and a relaxed reply rewards that honesty, while a shared shelf turns the problem into a practical setup rather than a correction. A clear line between shared and personal food often settles this kind of drift on its own, without either of you feeling called out. Reply B is the better one to send."
-      },
-      "followUp": {
-        "A": "Reply A also protects the way you plan your food. You shop for the week, and even with a shared shelf, the boundary between shared and personal items can blur. Asking Sam to check first keeps every item yours until you say otherwise, so the week's plan holds.",
-        "B": "A shared shelf can also be a small upside for both of you. Basics you each buy anyway, like bread or milk, stop doubling up in the fridge, and Sam gets a clear place to take from, which makes the rest of your food easier to leave alone."
-      },
-      "secondOpinion": {
-        "A": "Reading Sam's note closely: Sam already apologized and offered to replace the juice, so the topic is open right now. Reply A uses that moment to make the request honestly, and a short ask today is easier than raising it out of nowhere the next time something goes missing. Reply A is the stronger choice.",
-        "B": "Looking at the relationship rather than the juice: you and Sam already split chores fairly, so organizing food the same way fits how the two of you share the place. Treating it as one more thing to set up together keeps it from turning into a point of friction. Reply B is the stronger choice.",
-        "neutral": "Each reply has a real strength. Reply A states the problem plainly, so there is little chance Sam misses the point. Reply B offers a cooperative setup that keeps things easy at home. Neither is clearly better here; it depends on how Sam usually takes direct requests."
-      },
-      "designNote": "A direct request and a structural compromise are both common, constructive ways to handle a minor roommate boundary, and neither reply is rude or passive."
-    },
-
-    /* ---- E3 (emotional) [PLACEHOLDER] ---- */
-    {
-      "id": "E3",
-      "type": "emotional",
-      "placeholder": true,
-      "title": "Friend's poster feedback",
-      "scenario": "Your friend Priya designed a poster for her campus film club's movie night and sends you a photo asking, \"be honest, is this good?\" The colors are bright and the movie title stands out, but the date, time, and room number are in small text at the bottom and hard to read. The poster goes to print tomorrow morning. You want Priya's event to go well, and you know she put a lot of work into the design.",
-      "question": "Which reply would you send?",
-      "askText": "Priya wants honest feedback on her poster. Which reply works better?",
-      "toolQuery": "Select reply (A/B): honest feedback on friend's event poster",
-      "optionA": {
-        "label": "Reply A",
-        "name": "Point out the problem",
-        "text": "honestly the title looks great, but the date and room are really hard to read. i'd make those way bigger before it prints or people might miss it"
-      },
-      "optionB": {
-        "label": "Reply B",
-        "name": "Encourage, suggest a tweak",
-        "text": "it looks really good, the colors totally pop! if you have a sec maybe bump up the date and time a little, but it's great either way"
-      },
-      "attributes": [],
-      "defaultSide": "B",
-      "strength": 80,
-      "replies": {
-        "A": "Reply A fits better here. Priya asked directly for honesty, and the small date, time, and room number are the details people need to actually show up. With printing tomorrow morning, a clear note now is the most useful thing you can offer, and Reply A still opens by praising the title. Reply A is the better one to send.",
-        "B": "Reply B fits better here. The poster already does the hard part, with bright colors and a title that stands out, and Reply B says so. It still flags the date and time, just gently enough that Priya can fix them tonight without feeling the whole design missed the mark. Reply B is the better one to send."
-      },
-      "followUp": {
-        "A": "Reply A also makes the fix more likely to happen. A suggestion framed as optional, like \"if you have a sec,\" is easy to skip the night before printing. Saying that people might miss the event gives Priya a concrete reason to change it.",
-        "B": "Reply B also leaves the final call with Priya, who knows the layout and how much space the bottom of the poster has. Offering the change as a suggestion treats her as the designer, which makes her more likely to ask you for feedback again."
-      },
-      "secondOpinion": {
-        "A": "Weighing what makes feedback useful: praise carries more weight when it comes with a specific, honest note. Because Reply A names the problem directly, Priya can trust that the compliment about the title is real, and she knows exactly what to change. Reply A is the stronger choice.",
-        "B": "Weighing the size of the problem: enlarging the date, time, and room number is a quick fix on an otherwise strong poster. Reply B describes it at that scale, as a small tweak, while Reply A's warning that people might miss the event makes it sound bigger than it is. Reply B is the stronger choice.",
-        "neutral": "Both replies point to the same fix. Reply A's strength is clarity: Priya will know the date and room need to change before printing. Reply B's strength is encouragement: she hears the design works and gets a gentler nudge. Neither is clearly better here; it depends on what Priya meant by honest."
-      },
-      "designNote": "Both replies flag the same readability problem and differ only in how firmly, so the choice trades clarity of feedback against encouragement."
-    },
-
-    /* ---- A1 (analytical) [PLACEHOLDER] ---- */
+    /* ---- A1 (analytical, pair 1: roommates) ---- */
     {
       "id": "A1",
       "type": "analytical",
-      "placeholder": true,
-      "title": "Cheaper apartment or closer one",
-      "scenario": "You are choosing an apartment for next school year and have narrowed it down to two studios. You are on campus about five days a week, often for early classes, and you work part-time, so both money and time feel tight. You want to keep living costs down, but you also want more time for studying and sleep. Both leases run 12 months, and either place would be fine to live in.",
-      "question": "Which option would you choose?",
-      "askText": "Which of these two apartments should I sign the lease for?",
-      "toolQuery": "Select option (A/B): apartment lease, 12 months",
+      "pair": "roommates",
+      "title": "Choosing an internet plan",
+      "scenario": "You and your roommate are setting up internet for your apartment and will split the bill evenly. Your lease runs 10 months, from August to May. You both stream video and sometimes take classes online, and your roommate games online a few evenings a week. You have narrowed it to two plans from the same provider. Either plan would handle video calls and streaming without trouble.",
+      "question": "Which plan would you choose?",
+      "askText": "Which internet plan should we sign up for?",
       "optionA": {
         "label": "Option A",
-        "name": "Maple Ave studio",
-        "text": "A studio on Maple Ave, a 25-minute bus ride from campus."
+        "name": "Flex 500",
+        "text": "A 500 Mbps plan with no contract."
       },
       "optionB": {
         "label": "Option B",
-        "name": "Campus Row studio",
-        "text": "A studio on Campus Row, a 10-minute walk from campus."
+        "name": "Saver 200",
+        "text": "A 200 Mbps plan with a 12-month contract."
       },
       "attributes": [
         {
-          "label": "Monthly rent",
-          "a": "$1,050",
-          "b": "$1,290"
+          "label": "Monthly price",
+          "a": "$55",
+          "b": "$45"
         },
         {
-          "label": "Utilities per month",
-          "a": "About $90",
-          "b": "Included"
+          "label": "Setup fee",
+          "a": "$75",
+          "b": "None"
         },
         {
-          "label": "Commute each way",
-          "a": "25 min (bus)",
-          "b": "10 min (walk)"
+          "label": "Fee for cancelling after 10 months",
+          "a": "None",
+          "b": "$100"
         },
         {
-          "label": "Floor space",
-          "a": "420 sq ft",
-          "b": "300 sq ft"
+          "label": "Download speed",
+          "a": "500 Mbps",
+          "b": "200 Mbps"
+        },
+        {
+          "label": "Total for the 10-month lease",
+          "a": "$625",
+          "b": "$550"
         }
       ],
       "defaultSide": "A",
-      "strength": 80,
+      "strength": 8,
       "replies": {
-        "A": "Option A, the Maple Ave studio, comes out ahead on cost. Even with about $90 in utilities, it totals roughly $1,140 a month against $1,290 for Option B, a gap of $150 a month or $1,800 over the 12-month lease. It also adds 120 square feet for a desk and storage, and the bus ride can double as reading time. Option A is the better one to sign.",
-        "B": "Option B, the Campus Row studio, buys back time. The walk saves 30 minutes a day compared with the bus, which comes to 10 hours over about 20 campus days a month. With utilities included, the real cost gap is about $150 a month, or roughly $15 for each hour saved. That time can go to sleep, study, or shifts. Option B is the better one to sign."
+        "A": "Option A, the Flex 500 plan, gives more for a small difference. It costs $75 more over the 10-month lease, or $37.50 per roommate, under $4 a month each. For that, it delivers two and a half times the speed, which helps when one roommate is gaming while the other is on a video call. With no contract, it also ends cleanly in May. Option A is the better plan.",
+        "B": "Option B, the Saver 200 plan, covers the apartment's needs for less. At 200 Mbps it handles streaming, online classes, and gaming at the same time, and it costs $75 less over the lease, even after the $100 cancellation fee. Split evenly, that is $37.50 back for each roommate. Speed beyond what is used adds cost without benefit. Option B is the better plan."
       },
       "followUp": {
-        "A": "Floor space matters more than it looks on paper. At 420 square feet, Option A has room for a real desk, so studying at home is practical. In a 300-square-foot studio, schoolwork tends to drift back to the library, which adds trips and time of its own.",
-        "B": "Bus time is also less predictable than walking time. A 25-minute ride can stretch with missed connections, bad weather, or reduced evening service, while a 10-minute walk stays about the same. For early classes, that reliability means less buffer time and fewer rushed mornings."
+        "A": "The contract carries a risk the totals do not show. If plans change and the apartment is given up early, Option B's cancellation fee still applies, and one roommate, as the named account holder, may have to pay it. Option A can be cancelled at any time with nothing owed.",
+        "B": "Speed matters less than it seems for these uses. A video call needs a few megabits per second and high-definition streaming about 25, so several devices at once stay well under 200. Most of Option A's extra speed would go unused, so the $75 buys little in practice."
       },
       "secondOpinion": {
-        "A": "A lease locks in the cost for all 12 months, so the lower bill is the safer commitment while money is tight. The $1,800 saved over the year can also buy back time by allowing a few dropped work shifts during exam weeks. A slow month at work is easier to absorb, too. Option A is the stronger pick.",
-        "B": "Time on campus days is the scarcer resource here. With early classes and a part-time job, a 10-minute walk makes it easy to go home between classes to eat or rest, which a 25-minute ride each way rarely allows. Included utilities also keep the monthly bill fixed. Option B fits this schedule better.",
-        "neutral": "Both are reasonable. Option A's strongest point is money and space: about $1,800 saved over the lease plus 120 more square feet. Option B's strongest point is time: roughly 10 hours a month back and an easy walk home between classes. The choice depends on whether money or time feels tighter this year, and neither is clearly better."
+        "A": "Looking at shared use: two people online at once, one of them gaming, is where slower plans start to show lag. Option A's extra speed gives room for busy evenings, and under $4 a month each is a small price for a smoother connection. Option A is the stronger choice.",
+        "B": "Looking at the whole lease: Option B is cheaper every month, and the cancellation fee only narrows the gap to $75. For two students on a budget, the plan that meets every listed need at the lowest total cost is the sensible default. Option B is the stronger choice.",
+        "neutral": "Both plans handle streaming, classes, and gaming. Option A's strength is speed and flexibility: two and a half times faster, with no contract. Option B's strength is cost: $37.50 less per roommate over the lease. It depends on what the extra speed is worth, and neither is clearly better."
       },
-      "designNote": "Option A saves $150 a month and adds space, while Option B saves about 10 hours of commuting a month, so the implied price of about $15 per hour saved sits right where students could reasonably go either way."
+      "designNote": "Option A costs $37.50 more per roommate over the lease for 2.5 times the speed and no contract; both plans meet the stated needs."
     },
 
-    /* ---- A2 (analytical) [PLACEHOLDER] ---- */
+    /* ---- E2 (emotional, pair 2: friends) ---- */
     {
-      "id": "A2",
-      "type": "analytical",
-      "placeholder": true,
-      "title": "Choosing a summer job",
-      "scenario": "You are picking a job for a 10-week summer break and have two offers. You want to save as much as you can for rent and books in the fall, but you also plan to take one online course this summer and would like some time to rest. Both jobs use fixed 8-hour shifts, and the city bus is free with your student ID.",
-      "question": "Which option would you choose?",
-      "askText": "Which of these two summer job offers should I accept?",
-      "toolQuery": "Select option (A/B): summer job offer, 10 weeks",
+      "id": "E2",
+      "type": "emotional",
+      "pair": "friends",
+      "title": "Friend forgot your birthday",
+      "scenario": "Your close friend Riley forgot your birthday yesterday. You had mentioned it a few times the week before, and most of your other friends sent messages or stopped by. This morning Riley texted: \"oh no, I totally forgot your birthday yesterday!! happy belated, I feel terrible.\" You were a little hurt, but you know Riley has had a stressful week of exams. You are deciding how to reply.",
+      "question": "Which reply would you send?",
+      "askText": "How should I reply to Riley forgetting my birthday?",
       "optionA": {
         "label": "Option A",
-        "name": "Hotel front desk job",
-        "text": "A front desk job at a downtown hotel, working three 8-hour shifts a week."
+        "name": "Say it stung",
+        "text": "thank you! honestly it stung a little, but I know you've had a rough week. want to get dinner this weekend?"
       },
       "optionB": {
         "label": "Option B",
-        "name": "Campus bookstore job",
-        "text": "A register and stockroom job at the campus bookstore, working four 8-hour shifts a week."
+        "name": "Let it go",
+        "text": "thank you!! don't worry about it at all, I know exams have been a lot. want to get dinner this weekend?"
+      },
+      "attributes": [],
+      "defaultSide": "A",
+      "strength": 8,
+      "replies": {
+        "A": "Option A is the more honest reply. It thanks Riley, says briefly that the forgotten birthday hurt, and still shows understanding about the stressful week. Close friends usually handle a small, kind admission well, and saying it now keeps the hurt from quietly building up. The dinner invitation ends things warmly. Option A is the better reply to send.",
+        "B": "Option B is the more generous reply. Riley has already apologized and said they feel terrible, so adding that it stung mostly increases the guilt without changing anything. Mentioning the exams shows understanding, and the dinner invitation makes clear the friendship is fine. A forgotten birthday is a small slip. Option B is the better reply to send."
+      },
+      "followUp": {
+        "A": "Saying it lightly now is easier than saying it later. If the hurt goes unmentioned, it can come out more sharply the next time Riley forgets something. Option A names it once, gently, alongside understanding, so the moment can pass without leaving anything unsaid between the two friends.",
+        "B": "Riley's message already does what an honest reply would do: it admits the mistake and shows they care. Option B accepts that apology fully, which tends to make the next plan feel easy rather than awkward, and keeps the focus on spending time together at dinner."
+      },
+      "secondOpinion": {
+        "A": "Looking at the friendship over time: close friends benefit from being able to say small things honestly. Option A does that with care, pairing the admission with sympathy and an invitation. It treats Riley as someone who can hear a gentle truth. Option A is the stronger choice.",
+        "B": "Looking at Riley's side: a friend who forgot during exam week and apologized right away is unlikely to repeat it carelessly. Option B lets the apology land and moves straight to making plans, which is usually what a quick slip calls for. Option B is the stronger choice.",
+        "neutral": "Both replies are kind, and both suggest dinner. Option A's strength is honesty: it gently says the forgotten birthday hurt. Option B's strength is generosity: it accepts the apology fully and moves on. Either fits a close friendship, and neither is clearly better here."
+      },
+      "designNote": "Both replies are warm and suggest dinner; they trade gentle honesty about the hurt against fully accepting the apology."
+    },
+
+    /* ---- A2 (analytical, pair 2: friends) ---- */
+    {
+      "id": "A2",
+      "type": "analytical",
+      "pair": "friends",
+      "title": "Getting to a weekend trip",
+      "scenario": "You and three friends are planning a weekend trip to a city about 150 miles away, leaving Friday afternoon and returning Sunday evening. The group needs to decide how to get there, and everyone will split the cost evenly. Two of you have driver's licenses. You would like to keep costs low, but you also have a paper due Monday and were hoping to work on it during the trip.",
+      "question": "Which option would you choose?",
+      "askText": "Should we rent a car or take the train for our trip?",
+      "optionA": {
+        "label": "Option A",
+        "name": "Rental car",
+        "text": "Rent a car for the weekend and drive, sharing the cost of gas."
+      },
+      "optionB": {
+        "label": "Option B",
+        "name": "Train",
+        "text": "Take the train both ways, with one transfer each way."
+      },
+      "attributes": [
+        {
+          "label": "Cost per person, round trip",
+          "a": "$48",
+          "b": "$62"
+        },
+        {
+          "label": "Travel time each way",
+          "a": "2 h 30 min",
+          "b": "3 h 15 min"
+        },
+        {
+          "label": "Driving",
+          "a": "Two drivers take turns",
+          "b": "None"
+        },
+        {
+          "label": "Getting around the city",
+          "a": "By car",
+          "b": "Transit and walking"
+        }
+      ],
+      "defaultSide": "B",
+      "strength": 8,
+      "replies": {
+        "A": "Option A, the rental car, is cheaper and faster. It costs $14 less per person and saves 45 minutes each way, an hour and a half over the weekend. A car also makes getting around the city easier. With two drivers taking turns, each drives only part of the way, and the passengers can still work on the paper. Option A is the better choice.",
+        "B": "Option B, the train, turns travel time into work time. With no driving, there are about 6 hours of round-trip travel for the paper due Monday, which takes pressure off the weekend itself. The extra $14 per person buys that time plus a break from driving 300 miles. Transit covers most trips in the city. Option B is the better choice."
+      },
+      "followUp": {
+        "A": "Transfers add risk that the listed times do not show. One late train can mean a missed connection and a long wait, especially on a Sunday evening. A car leaves on the group's schedule and returns the same way, which matters with a paper due the next morning.",
+        "B": "Driving costs more than the price suggests. One person is at the wheel for every minute of the trip, so at least one person cannot work at all, and both drivers arrive more tired. On the train, all four can rest, read, or write, which matters with a deadline on Monday."
+      },
+      "secondOpinion": {
+        "A": "Looking at the group as a whole: four people sharing a car is the most efficient way to travel together, and the savings and shorter trip apply to everyone. Having a car in the city also opens up more of what the weekend can include. Option A is the stronger choice.",
+        "B": "Looking at the paper due Monday: a weekend away leaves little time for it, and the train adds about 6 hours of usable time without taking anything from the trip. For $14 per person, that time is worth more than a shorter ride. Option B is the stronger choice.",
+        "neutral": "Both options get the group there and back. Option A's strength is cost and speed: $14 less per person, 45 minutes shorter each way, and a car in the city. Option B's strength is usable time: about 6 hours to work on the paper. Neither is clearly better here."
+      },
+      "designNote": "Option A saves $14 per person and 90 minutes in total; Option B costs more but frees about 6 hours of travel time for the paper due Monday."
+    },
+
+    /* ---- E3 (emotional, pair 3: job) ---- */
+    {
+      "id": "E3",
+      "type": "emotional",
+      "pair": "job",
+      "title": "Manager asks you to cover a shift",
+      "scenario": "You work part-time at a campus café, and you like your manager, Dana. On Thursday, Dana texts asking whether you can cover an extra shift this Saturday because someone called in sick. You have already covered two extra shifts this month, and Saturday is the one day you had kept free to rest. Nothing is planned, but you were counting on the break. You are deciding how to reply.",
+      "question": "Which reply would you send?",
+      "askText": "How should I answer Dana about covering Saturday?",
+      "optionA": {
+        "label": "Option A",
+        "name": "Decline politely",
+        "text": "hi Dana, sorry, I can't this Saturday. I've covered a couple of extra shifts already and need the day. hope you find someone!"
+      },
+      "optionB": {
+        "label": "Option B",
+        "name": "Cover with a limit",
+        "text": "hi Dana, I can cover this Saturday, but I'll need to keep the next few Saturdays free. thanks for understanding!"
+      },
+      "attributes": [],
+      "defaultSide": "B",
+      "strength": 8,
+      "replies": {
+        "A": "Option A protects the day off. After two extra shifts this month, Saturday is the only planned rest, and giving it up risks burning out halfway through the semester. The reply is polite, gives a brief and honest reason, and wishes Dana luck finding someone. Managers expect staff to decline extra shifts sometimes. Option A is the better reply to send.",
+        "B": "Option B helps Dana while setting a clear limit. Covering a shift when someone is sick builds goodwill with a manager you like, which can matter later for scheduling or references. Saying the next few Saturdays stay free keeps it from becoming a habit and makes the boundary explicit. Option B is the better reply to send."
+      },
+      "followUp": {
+        "A": "Saying yes again makes the next request more likely. After two extra shifts, a third can quietly set the expectation of always being the one who covers. A polite no now resets that expectation, and a short reason like the one in Option A is enough without over-explaining.",
+        "B": "A limit attached to a yes is often clearer than a plain no. Option B tells Dana exactly what to expect for the coming weeks, so future requests are less likely, while the help this Saturday shows reliability at a moment when the café is short-staffed."
+      },
+      "secondOpinion": {
+        "A": "Looking at the whole semester: rest days are hard to get back once they are gone, and a third extra shift in one month is a lot alongside classes. A polite, honest no keeps the arrangement sustainable for both sides. Option A is the stronger choice.",
+        "B": "Looking at the working relationship: a coworker is out sick, and Dana is asking, not demanding. Helping this once, with a clear limit on the coming weeks, earns goodwill and sets the boundary at the same time. Option B is the stronger choice.",
+        "neutral": "Both replies are polite, and both set a boundary. Option A's strength is protecting the planned rest after two extra shifts. Option B's strength is helping Dana now while limiting future requests. Either is a reasonable way to answer, and neither is clearly better."
+      },
+      "designNote": "Both replies are polite and set a boundary; they trade protecting rest against helping a liked manager with an explicit limit."
+    },
+
+    /* ---- A3 (analytical, pair 3: job) ---- */
+    {
+      "id": "A3",
+      "type": "analytical",
+      "pair": "job",
+      "title": "Choosing a work schedule",
+      "scenario": "You work part-time at a campus café and are choosing your shift schedule for the semester. Both options are 12 hours a week, and the café is a 20-minute bus ride from your apartment each way. Your classes run on weekdays until mid-afternoon. You want to earn as much as you can while keeping time for coursework and friends. Your manager has offered two schedules, and you need to pick one by Friday.",
+      "question": "Which schedule would you choose?",
+      "askText": "Which of these two work schedules should I pick?",
+      "optionA": {
+        "label": "Option A",
+        "name": "Weekday evenings",
+        "text": "Three 4-hour evening shifts: Monday, Wednesday and Thursday."
+      },
+      "optionB": {
+        "label": "Option B",
+        "name": "Weekend days",
+        "text": "Two 6-hour day shifts: Saturday and Sunday."
       },
       "attributes": [
         {
           "label": "Hourly pay",
-          "a": "$18.00",
-          "b": "$15.00"
+          "a": "$17",
+          "b": "$16"
         },
         {
-          "label": "Hours per week",
-          "a": "24",
-          "b": "32"
+          "label": "Weekly pay (12 hours)",
+          "a": "$204",
+          "b": "$192"
         },
         {
-          "label": "Shifts per week",
-          "a": "3",
-          "b": "4"
+          "label": "Commuting per week",
+          "a": "2 h (3 round trips)",
+          "b": "1 h 20 min (2 round trips)"
         },
         {
-          "label": "Commute each way",
-          "a": "40 min (bus)",
-          "b": "10 min (walk)"
-        }
-      ],
-      "defaultSide": "B",
-      "strength": 80,
-      "replies": {
-        "A": "Option A, the hotel front desk job, pays more per hour spent. Three shifts at $18 an hour earn $432 a week over 28 hours with the bus, roughly $15.40 per hour. Option B earns $480 a week over about 33 hours with travel, roughly $14.40 per hour. Option A gets 90 percent of the pay in about 5 fewer hours. Option A is the better one to take.",
-        "B": "Option B, the campus bookstore job, earns more over the summer. Four 8-hour shifts at $15 an hour come to $480 a week, or $4,800 over 10 weeks, compared with $4,320 for Option A, a difference of $480. The 10-minute walk also means about 13 hours of commuting all summer instead of 40 hours on the bus. Option B is the better one to take."
-      },
-      "followUp": {
-        "A": "Whole free days are worth more than spare evenings. Three shifts leave four open days a week for course videos, assignments, and rest, while four shifts leave three. Over 10 weeks, that is 40 free days against 30, which makes the online course much easier to keep up with.",
-        "B": "Option B also asks less of each workday. With a 10-minute walk, a shift day takes under 9 hours door to door, while each Option A shift day runs over 9 hours with the bus ride. Shorter days leave more evening energy for the online course."
-      },
-      "secondOpinion": {
-        "A": "Consider what the extra $480 from Option B actually costs. Option B takes about 53 more hours over the summer once shifts and travel are counted, roughly $9 for each added hour. Giving up that much time for $9 an hour is a weak trade when an online course also needs attention. Option A is the stronger choice.",
-        "B": "The main goal here is saving for fall rent and books, and those bills are paid in total dollars, not hourly rates. Option B puts $48 more toward them every week. Working on campus also keeps the library a short walk away, so course study can fit right before or after a shift. Option B fits better.",
-        "neutral": "The strongest case for Option A is efficiency: about $15.40 per hour once the bus ride is counted, plus four free days a week. The strongest case for Option B is total pay: $480 more over the summer with a short walk. Neither is clearly better; it depends on whether fall savings or summer free time matters more."
-      },
-      "designNote": "Option A pays a higher rate per hour of total time and leaves an extra free day each week, while Option B earns $480 more over the summer with far less commuting, so the answer depends on whether savings or free time matters more."
-    },
-
-    /* ---- A3 (analytical) [PLACEHOLDER] ---- */
-    {
-      "id": "A3",
-      "type": "analytical",
-      "placeholder": true,
-      "title": "Picking a used laptop",
-      "scenario": "Your old laptop just stopped working, and you have three years left in your degree. You have found two used laptops in good condition. You carry your laptop to campus most days, often for long stretches between classes, and you keep a lot of photos and project files. Your budget is tight, so spending less matters, but you also want something that will hold up until graduation.",
-      "question": "Which option would you choose?",
-      "askText": "Which of these two used laptops should I buy?",
-      "toolQuery": "Select option (A/B): used laptop purchase",
-      "optionA": {
-        "label": "Option A",
-        "name": "2021 15-inch laptop",
-        "text": "A used 15-inch laptop from 2021, in good condition."
-      },
-      "optionB": {
-        "label": "Option B",
-        "name": "2023 13-inch laptop",
-        "text": "A used 13-inch laptop from 2023, in good condition."
-      },
-      "attributes": [
-        {
-          "label": "Price",
-          "a": "$450",
-          "b": "$650"
+          "label": "Weekday evenings free",
+          "a": "2 of 5",
+          "b": "5 of 5"
         },
         {
-          "label": "Battery life",
-          "a": "About 5 hours",
-          "b": "About 11 hours"
-        },
-        {
-          "label": "Storage",
-          "a": "512 GB",
-          "b": "256 GB"
-        },
-        {
-          "label": "Update support left",
-          "a": "3 more years",
-          "b": "6 more years"
+          "label": "Weekend days free",
+          "a": "2 of 2",
+          "b": "0 of 2"
         }
       ],
       "defaultSide": "A",
-      "strength": 80,
+      "strength": 8,
       "replies": {
-        "A": "Option A, the 2021 15-inch laptop, covers what you need for less. At $200 less, it costs about $150 per year of your degree versus about $217 for Option B, and its 3 years of update support match the 3 years you have left. Its 512 GB drive also holds twice as much, with room for photos and project files. Option A is the better one to buy.",
-        "B": "Option B, the 2023 13-inch laptop, fits long days on campus. About 11 hours of battery is more than double Option A's 5, so there is no need to hunt for outlets between classes. It also gets twice the update support, 6 years against 3. The extra $200, spread over 3 years, is under $6 a month. Option B is the better one to buy."
+        "A": "Option A, the weekday evenings, pays more and keeps weekends free. At $17 an hour it brings in $12 more a week, about $180 over a 15-week semester. Saturdays and Sundays stay open for longer study sessions, errands, and time with friends. The extra 40 minutes of commuting each week is a small cost against both. Option A is the better schedule.",
+        "B": "Option B, the weekend days, keeps weekday evenings free for coursework. Classes run until mid-afternoon, so evening shifts would cut into the main time for homework three nights a week. Two trips instead of three also save 40 minutes of commuting each week. The $12 a week less in pay is about $1 an hour. Option B is the better schedule."
       },
       "followUp": {
-        "A": "The storage gap is easy to underestimate. Photos and project files grow every semester, and 256 GB fills quickly, since part of it is used before any files are added. Option B would likely need an external drive or a paid cloud plan, adding to its $200 higher price.",
-        "B": "Update support matters for more than new features. A laptop whose updates end right at graduation leaves no margin if your degree runs a semester longer, and it may stop getting security fixes just when you need it for job applications. Option B's 6 years remove that concern."
+        "A": "Long weekend shifts carry a cost the hours do not show. Working both days leaves no full day off in the week, and 6-hour shifts are more tiring than 4-hour ones. Over a semester, a schedule with two free days usually makes the weekday workload easier to sustain.",
+        "B": "Evening shifts also affect the next morning. Finishing work late, then riding the bus home, often pushes homework past midnight three nights a week. With Option B, weekdays follow a predictable pattern of classes, then study, and work stays contained in two blocks on the weekend."
       },
       "secondOpinion": {
-        "A": "Option A's weak spot, battery life, has a free fix: bringing the charger and sitting near an outlet, which most libraries and lecture halls offer. Option B's weak spot, storage, usually costs money to fix. The 15-inch screen also gives more room for papers and photos. With $200 left for textbooks, Option A comes out ahead.",
-        "B": "Over a longer horizon, Option B holds its value better. Its updates continue for 3 years after graduation, so it can carry into a first job or be resold for part of its price, while Option A's support ends when school does. The 13-inch size is also easier to carry daily. Option B is the stronger choice.",
-        "neutral": "The strongest point for Option A is cost and storage: $200 less and twice the space for files, with updates lasting through graduation. The strongest point for Option B is daily convenience: more than double the battery life and updates well past graduation. Neither is clearly the better buy; it depends on whether budget or battery matters more."
+        "A": "Looking at earnings and balance together: Option A earns about $180 more over the semester and still leaves two full days free every week. Weekends are also when friends are most available, which matters for a semester-long schedule. Option A is the stronger choice.",
+        "B": "Looking at the weekly routine: keeping every weekday evening open for coursework is valuable during midterms and finals, when evening study time is hardest to replace. Fewer trips add to that, and the pay difference is small. Option B is the stronger choice.",
+        "neutral": "Both schedules are 12 hours a week. Option A's strength is pay and free weekends: about $180 more over the semester. Option B's strength is free weekday evenings and 40 fewer minutes of commuting a week. It depends on which time matters more, and neither is clearly better."
       },
-      "designNote": "Option A is $200 cheaper with double the storage and support that just covers the degree, while Option B has more than double the battery life and twice the support period, so the better value depends on how a student weighs budget, storage, and portability."
+      "designNote": "Option A earns about $180 more per semester and keeps weekends free; Option B keeps every weekday evening free and saves 40 minutes of commuting a week."
+    },
+
+    /* ---- E4 (emotional, pair 4: group project) ---- */
+    {
+      "id": "E4",
+      "type": "emotional",
+      "pair": "group project",
+      "title": "Group member hasn't contributed",
+      "scenario": "You are in a four-person group for a class presentation due in five days. Last week everyone agreed on a plan, and each person took a set of slides. Three of you have finished drafts, but Jamie has not added anything or replied in the group chat for four days. You do not know Jamie well. You are usually the one who keeps the group organized, and you are deciding what message to send.",
+      "question": "Which message would you send?",
+      "askText": "What should I say about Jamie not doing their slides?",
+      "optionA": {
+        "label": "Option A",
+        "name": "Message Jamie privately",
+        "text": "hey Jamie, just checking in. haven't seen your slides yet, is everything okay? happy to help if you're stuck"
+      },
+      "optionB": {
+        "label": "Option B",
+        "name": "Post in the group chat",
+        "text": "hi all! quick check-in: can everyone have their slides in by Thursday so we have time to practice together?"
+      },
+      "attributes": [],
+      "defaultSide": "A",
+      "strength": 8,
+      "replies": {
+        "A": "Option A is more likely to get a real answer. A private message reaches Jamie directly, avoids embarrassing them in front of the group, and leaves room to explain if something is going on. The offer to help makes it easy to reply honestly instead of staying quiet. Option A is the better message to send.",
+        "B": "Option B sets a clear deadline without singling anyone out. Asking everyone for slides by Thursday applies the same expectation to all four members, so Jamie is reminded without being called out. It also gives the group a shared date to plan practice around, which keeps the project on track. Option B is the better message to send."
+      },
+      "followUp": {
+        "A": "Group-wide reminders are easy to overlook. Jamie has already gone quiet in the group chat for four days, so another message there may be missed in the same way. A direct message is harder to ignore and shows that someone has noticed, in a caring rather than critical way.",
+        "B": "A private message from someone Jamie does not know well can feel more pointed than intended, as if Jamie is being watched. A group check-in keeps things neutral and lets Jamie respond without explaining anything to one person. It also creates a deadline everyone shares."
+      },
+      "secondOpinion": {
+        "A": "Looking at Jamie's silence: four days without a reply can mean something is wrong. A private, friendly message is the most direct way to find out and to offer help, and it avoids any public pressure. Option A is the stronger choice.",
+        "B": "Looking at the group's timeline: what the project needs most is a clear shared deadline. A group check-in sets one for everyone, nudges Jamie without singling them out, and makes planning the practice easier. Option B is the stronger choice.",
+        "neutral": "Both messages are friendly and aim to get the slides done. Option A's strength is reaching Jamie directly and offering help. Option B's strength is setting a clear deadline for the whole group without singling anyone out. Either is reasonable, and neither is clearly better."
+      },
+      "designNote": "Both messages are friendly; they trade a direct, caring private check-in against a neutral group deadline."
+    },
+
+    /* ---- A4 (analytical, pair 4: group project) ---- */
+    {
+      "id": "A4",
+      "type": "analytical",
+      "pair": "group project",
+      "title": "Choosing a dataset for a project",
+      "scenario": "Your four-person group must analyze a dataset for a class project due in three weeks. Each person can put in about 5 hours a week, so the group has about 60 hours in total. You have narrowed the choice to two datasets on student housing. The grade depends mostly on the quality of the analysis and the presentation, and nobody in the group has much experience cleaning data.",
+      "question": "Which dataset would you choose?",
+      "askText": "Which of these two datasets should our group use?",
+      "optionA": {
+        "label": "Option A",
+        "name": "Campus survey",
+        "text": "A small, already-cleaned survey of students at your university."
+      },
+      "optionB": {
+        "label": "Option B",
+        "name": "City records",
+        "text": "A large set of rental listings from city records that needs cleanup."
+      },
+      "attributes": [
+        {
+          "label": "Rows",
+          "a": "2,000",
+          "b": "50,000"
+        },
+        {
+          "label": "Variables",
+          "a": "12",
+          "b": "40"
+        },
+        {
+          "label": "Estimated cleaning time",
+          "a": "3 hours",
+          "b": "15 hours"
+        },
+        {
+          "label": "Hours left for analysis and slides",
+          "a": "57",
+          "b": "45"
+        },
+        {
+          "label": "Used by past groups",
+          "a": "Often",
+          "b": "Rarely"
+        }
+      ],
+      "defaultSide": "B",
+      "strength": 8,
+      "replies": {
+        "A": "Option A, the campus survey, leaves the most time for the graded work. With only about 3 hours of cleaning, the group keeps 57 of its 60 hours for analysis and the presentation, 12 more than Option B. That margin matters in a group without data-cleaning experience. Twelve variables are enough for a focused, well-explained analysis. Option A is the better dataset.",
+        "B": "Option B, the city records, gives the analysis more to work with. Forty variables and 50,000 rows allow comparisons a 2,000-row survey cannot support, and a dataset past groups rarely used helps the project stand out. Even after 15 hours of cleaning, 45 hours remain, about 11 per person, which is enough for careful work. Option B is the better dataset."
+      },
+      "followUp": {
+        "A": "Cleaning estimates for messy data usually run long, especially without experience. If 15 hours becomes 25, Option B leaves only 35 hours for the parts that are graded. Option A's estimate is far less likely to grow, since the data has already been cleaned.",
+        "B": "A familiar dataset sets a high bar. Graders who have seen many projects on the same survey tend to compare them with each other, so a solid analysis can still look routine. Option B gives the group findings that are new, which makes a strong presentation easier to build."
+      },
+      "secondOpinion": {
+        "A": "Looking at risk: three weeks and little data-cleaning experience make a smaller, clean dataset the safer plan. The graded work gets 12 more hours, and the group is less likely to be caught short near the deadline. Option A is the stronger choice.",
+        "B": "Looking at what the grade rewards: the quality of the analysis depends on what the data can show. Forty variables and real rental listings support richer findings, and 45 hours is still a workable amount of time. Option B is the stronger choice.",
+        "neutral": "Both datasets can support a good project. Option A's strength is time: 57 hours left for analysis and slides, with little risk. Option B's strength is depth: 40 variables and 50,000 rows for richer findings. It depends on the group's appetite for risk, and neither is clearly better."
+      },
+      "designNote": "Option A leaves 12 more hours for graded work with little risk; Option B offers far richer data at the cost of time and cleaning risk."
     }
     /* ITEMS_END */
   ]

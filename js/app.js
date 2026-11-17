@@ -269,7 +269,9 @@
         '<div class="researcher-body">' +
           (nextUrl ? '<a class="btn primary" href="' + esc(nextUrl) + '">Start next participant (pid ' + (A.session.pid + 1) + ')</a>' : '') +
           '<button class="btn secondary" id="dl-this" type="button">Download this session (CSV)</button>' +
-          '<button class="btn secondary" id="dl-all" type="button">Download all participant sessions in this browser (CSV)</button>' +
+          '<button class="btn secondary" id="dl-all" type="button">Download all participants: decisions (CSV)</button>' +
+          '<button class="btn secondary" id="dl-sum" type="button">Download all participants: summary (CSV)</button>' +
+          '<button class="btn secondary" id="dl-book" type="button">Download codebook (CSV)</button>' +
           '<p class="muted small">' + participantSessions.length + ' participant session(s) stored in this browser for this address' +
           (D.storageOK ? '' : ' — browser storage is unavailable, so only “this session” can be downloaded') + '.</p>' +
         '</div>' +
@@ -285,12 +287,20 @@
       document.addEventListener('keydown', reveal);
     }
     document.getElementById('dl-this').addEventListener('click', function () {
-      D.download('haitrust_session_' + A.session.session_id + '_' + D.fileStamp() + '.csv', D.toCSV([A.session]));
+      D.download('haitrust_session_' + A.session.session_id + '_decisions_' + D.fileStamp() + '.csv', D.toCSV([A.session]));
     });
-    document.getElementById('dl-all').addEventListener('click', function () {
+    var participantList = function () {
       var sessions = Object.values(D.loadAll()).filter(function (s) { return !s.is_review; });
-      if (!sessions.length) sessions = [A.session];
-      D.download('haitrust_all_' + D.fileStamp() + '.csv', D.toCSV(sessions));
+      return sessions.length ? sessions : [A.session];
+    };
+    document.getElementById('dl-all').addEventListener('click', function () {
+      D.download('haitrust_decisions_' + D.fileStamp() + '.csv', D.toCSV(participantList()));
+    });
+    document.getElementById('dl-sum').addEventListener('click', function () {
+      D.download('haitrust_participants_' + D.fileStamp() + '.csv', D.toSummaryCSV(participantList()));
+    });
+    document.getElementById('dl-book').addEventListener('click', function () {
+      D.download('haitrust_codebook.csv', D.codebookCSV());
     });
   }
 
@@ -385,10 +395,10 @@
     var active = which === 'first' ? rec.step === 'first' : rec.step === 'reply';
     var val = which === 'first' ? rec.first_value : rec.final_value;
     var marker = which === 'final' && rec.first_answer != null
-      ? '<div class="slider-marker" style="--v:' + rec.first_answer + '"><span>' + esc(S.firstMarker) + '</span></div>' : '';
+      ? '<div class="slider-marker" style="--v:' + (rec.first_answer * 100 / S.max) + '"><span>' + esc(S.firstMarker) + '</span></div>' : '';
     return '<div class="slider' + (val == null ? ' is-untouched' : '') + (active ? '' : ' is-locked') + (marker ? ' has-marker' : '') + '" data-slider="' + which + '">' +
       '<div class="slider-track">' + marker +
-        '<input type="range" min="0" max="100" step="1" value="' + (val == null ? 50 : val) + '"' + (active ? '' : ' disabled') +
+        '<input type="range" min="0" max="' + S.max + '" step="1" value="' + (val == null ? S.max / 2 : val) + '"' + (active ? '' : ' disabled') +
         ' aria-label="' + esc(item.question) + '">' +
       '</div>' +
       '<div class="slider-labels"><span>' + esc(U.fill(S.left, { A: item.optionA.label })) + '</span><span>' + esc(S.middle) + '</span><span>' + esc(U.fill(S.right, { B: item.optionB.label })) + '</span></div>' +
@@ -401,6 +411,10 @@
     var head = rec.is_practice ? P.practiceLabel : U.fill(P.progress, { n: rec.position, total: A.nMain() });
     var h = '<div class="panel-head"><span class="pill' + (rec.is_practice ? ' pill--practice' : '') + '">' + esc(head) + '</span>' +
       (A.review && item.placeholder ? '<span class="pill pill--ph">placeholder content</span>' : '') + '</div>';
+    if (A.review) {
+      var warn = lengthWarnings(item);
+      if (warn.length) h += '<ul class="len-warn" title="Reviewer mode only">' + warn.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
+    }
     h += '<div class="scenario">' + U.paras(item.scenario) + '</div>';
     h += optionsHTML(item);
 
@@ -637,7 +651,7 @@
     var r = A.rec, o = A.opts();
     if (step <= 1) return;
     r.jumped = 1;
-    r.first_value = r.first_answer = 30;
+    r.first_value = r.first_answer = Math.round(C.slider.max * 0.3);
     r.times.first_submit = 0;
     r.step = 'ask';
     if (step >= 3) {
@@ -652,6 +666,25 @@
       r.final_answer = r.final_value;
       r.step = 'ratings';
     }
+  }
+
+  /* Reviewer-mode length check: texts that should match in length but drift
+     apart (see the writing rules above the items in config.js). */
+  function lengthWarnings(item) {
+    var words = function (t) { return String(t || '').split(/\s+/).filter(Boolean).length; };
+    var out = [];
+    var check = function (what, texts, limit) {
+      var n = texts.map(words), hi = Math.max.apply(null, n), lo = Math.min.apply(null, n);
+      if (hi && (hi - lo) / hi > limit) out.push(what + ' differ in length: ' + n.join(' / ') + ' words (limit ' + Math.round(limit * 100) + '%).');
+    };
+    if (item.replies) check('Replies A / B', [item.replies.A, item.replies.B], 0.10);
+    if (item.followUp) check('Explanations A / B', [item.followUp.A, item.followUp.B], 0.15);
+    if (item.secondOpinion) check('Second opinions A / B / neutral', [item.secondOpinion.A, item.secondOpinion.B, item.secondOpinion.neutral], 0.15);
+    if (item.pair) {
+      var partner = C.items.filter(function (x) { return x.pair === item.pair && x.id !== item.id; })[0];
+      if (partner) check('Scenarios ' + item.id + ' / ' + partner.id + ' (' + item.pair + ')', [item.scenario, partner.scenario], 0.15);
+    }
+    return out;
   }
 
   /* ------------------------------------------------------------------ */
@@ -677,7 +710,7 @@
         if (!it[f] || !it[f].label || !it[f].name || !it[f].text) p.push(where + ': ' + f + ' needs label, name and text.');
       });
       if (['A', 'B'].indexOf(it.defaultSide) < 0) p.push(where + ': defaultSide must be "A" or "B".');
-      if (!(it.strength >= 50 && it.strength <= 100)) p.push(where + ': strength should be between 50 and 100.');
+      if (!(it.strength > C.slider.max / 2 && it.strength <= C.slider.max)) p.push(where + ': strength should be above ' + (C.slider.max / 2) + ' and at most ' + C.slider.max + '.');
       ['replies', 'followUp'].forEach(function (f) {
         if (!it[f] || !it[f].A || !it[f].B) p.push(where + ': ' + f + ' needs both A and B.');
       });

@@ -44,13 +44,15 @@ In reviewer mode, the yellow label in the top bar shows where you are, for examp
 
 1. Open the study with the participant's pid: `…/index.html?pid=1`, then 2, 3 and so on. Keep your own sheet of which pid ran when.
 2. If that pid was already used in this browser, a yellow researcher note appears on the first screen. Change the address to the next pid before handing over.
-3. The participant goes through consent, instructions, 1 practice item, 6 decisions, the end questions and the debrief.
+3. The participant goes through consent, instructions, 1 practice item, 8 decisions, the end questions and the debrief.
 4. On the debrief screen, press **Shift + D** to show the researcher tools. They are hidden from participants. The tools are:
    - **Start next participant**, which opens the next pid.
    - Download this session as CSV.
    - Download all participant sessions in this browser as CSV.
 
    Reviewer mode (`?review=1` → Data) offers the same exports.
+
+If a participant asks at the debrief for their answers not to be used, note their pid on your sheet and drop that pid's rows from the CSV before analysis.
 
 Data stays in this browser until you download it, and clearing browser data deletes it. Download at the end of each day at least. If saving ever fails, a red banner tells you.
 
@@ -78,7 +80,7 @@ To change content, edit `config.js` and reload. A red box at the top of the page
 The same steps run in both interfaces. Only the right-hand panel changes.
 
 1. **Read.** The scenario and the two options appear in the left panel, which looks identical in both conditions.
-2. **First answer.** A 0–100 slider from "Definitely A" to "Definitely B". It shows no handle until it is clicked, so 50 is never a default answer. Participants see labels, not numbers.
+2. **First answer.** A 0–10 slider (whole steps, with a small tick at each step) from "Definitely A" to "Definitely B". It shows no handle until it is clicked, so 5 is never a default answer. Participants see labels, not numbers.
 3. **Get the recommendation.** The left panel says "press the highlighted button on the right" in both conditions.
    - Messaging: a pre-written message is in the compose box, and "Ask" sends it, quoting both options.
    - Tool: the options sit in cells, and "Run" executes `=RECOMMEND(...)`.
@@ -102,15 +104,14 @@ The same steps run in both interfaces. Only the right-hand panel changes.
 | Option | Default | Choices |
 |---|---|---|
 | Interface (the manipulation) | by pid schedule / random | Messaging / Tool |
-| Tool look | **Full spreadsheet** (title bar, menus, toolbar, formula bar, grid, tabs, status bar) | light / medium / full |
-| Tool query wording | **Terse** (`Select reply (A/B): …`) | terse / same as chat message |
+| Tool look | **App** (decision-support software: option cards, Run analysis, numbered results; Query shows the chat message word for word) | light / medium / full / app |
 | Messaging contact | **Generic "Assistant"** | generic / named persona "Robin" |
 | Messaging social cues | **Full** (avatars, timestamps, day divider) | full / minimal |
 | Which side the AI recommends | **Opposite to first answer** | opposite / fixed per item |
 | Lean as a number | **Off** | off / on |
 | Second scripted turn ("Get an explanation") | **Off** | off / on |
 | What the second opinion says | **Neutral** | neutral / agrees / disagrees |
-| Who gives the second opinion | **A second AI** ("Assistant 2" / "model 2") | second AI / same AI again |
+| Who gives the second opinion | **The same AI again** ("run 2" in the Tool) | second AI / same AI again |
 | Where the optional buttons sit | **Shared left panel** | panel / inside each interface |
 | Trust questions after each item | **On** | on / off |
 | Final slider starts | **At the first answer** | first / blank |
@@ -124,75 +125,46 @@ When the Design options drawer is open, the study shifts left so you can watch e
 ## Assignment and order
 
 - **Interface:** odd pids get Messaging and even pids get Tool. With pids 1–48 that is 24 and 24.
-- **Order:** the 6 main items go into a balanced Latin square (Williams design). Pids cycle through its 6 orders, so pids 1–12 cover all 12 interface × order combinations, and 48 people give 4 per combination. Each item appears in each position 8 times, and each item directly follows every other item 8 times. Task types are mixed, never three of one type in a row. The practice item always comes first. If you change to an odd number of items, the square doubles to stay balanced.
+- **Order:** the 8 main items go into a balanced Latin square (Williams design). Pids cycle through its 8 orders, so pids 1–16 cover all 16 interface × order combinations; 48 people give 3 per combination and 64 give 4. Each item appears in each position equally often, and each item directly follows every other item equally often. Task types are mixed, never three of one type in a row. The practice item always comes first. If you change to an odd number of items, the square doubles to stay balanced.
 - **No pid:** the interface is random and the order is a random row, recorded as `assignment_method = random`.
 - `?ui=` overrides the interface, recorded as `...+ui_param`.
 
 ---
 
-## Data dictionary (CSV)
+## Data files
 
-There is one row per participant per item reached; the practice item is included, flagged `is_practice=1`. Session-level answers repeat on every row of that session. All `ms_*` and `t_*` values are milliseconds.
+The researcher tools (Shift + D on the debrief, or reviewer mode → Data) download three CSV files:
 
-**Session and settings**
+| File | One row per | Use it for |
+|---|---|---|
+| `haitrust_participants_….csv` | participant | **Most analyses.** Each person's averages split by decision type: weight of advice, trust ratings, switches to the AI, second-opinion requests, the decision-type check, and the end-of-study scale means. Practice is left out. |
+| `haitrust_decisions_….csv` | participant × decision | Item-level or mixed-model analyses, and checking individual answers. |
+| `haitrust_codebook.csv` | column | **What every column in both files means**, with its values and scale ends. Generated from `config.js`, so it always matches the current questions. |
 
-- `session_id`: random code, not linked to anyone.
-- `study_version`.
-- `pid`.
-- `pid_prior_sessions`: how many earlier sessions in this browser used the same pid. Anything above 0 is a possible repeat or mistake.
-- `assignment_method`.
-- `is_review`: 1 if the session ran in reviewer mode.
-- `session_completed`: 1 if the participant reached the debrief.
-- `started_at`, `finished_at`: ISO times.
-- `order_row`, `item_order_seen`.
-- `ui`, `tool_look`, `tool_query`, `chat_identity`, `chat_cues`, `advice_direction`, `lean_as_number`, `follow_up`, `second_opinion_mode`, `second_opinion_source`, `optional_buttons`, `per_item_ratings`, `final_slider_start`, `item_order`, `delay_ms`: the settings in force for this item.
+**Before analysing**, drop rows where `is_reviewer_session = 1`, `session_completed = 0` or `item_jumped_in_review = 1`, and, in the decisions file, the practice item (`is_practice = 1`).
 
-**Item and answers**
+**Key columns in the decisions file**
 
-- `item_id`, `item_type`, `is_practice`, `position`: position 1–6 in the main sequence; 0 for practice.
-- `item_done`.
-- `item_jumped_in_review`: 1 if a reviewer jumped into this item (earlier steps were faked).
-- `default_side`.
-- `first_answer`, `final_answer`: 0 = definitely A, 100 = definitely B.
-- `rec_side` (A or B), `rec_position`: where the AI's recommendation sits on the slider (B → strength, A → 100 − strength; default 80 / 20).
-- `change`: final − first.
-- `change_toward_rec`: positive means the answer moved toward the AI.
-- `woa`: weight of advice, (final − first) / (rec_position − first). 0 means the answer ignored the advice and 1 means it fully adopted it.
-- `first_slider_moves`, `final_slider_moves`.
-- `followup_clicked`, `second_opinion_clicked`: 0 or 1.
-- `second_opinion_variant`: which second reply was shown (A, B or neutral).
-
-**Time on each step**
-
-- `ms_step1_read_and_first_answer`: from the scenario appearing to saving the first answer.
-- `ms_step2_first_answer_to_ask`: from saving the first answer to pressing Ask or Run. Ask and Run sit in different places, so compare this one only *within* a condition.
-- `ms_step3_wait`: the reply delay as it actually ran.
-- `ms_step4_reply_to_final_answer`.
-- `ms_step5_item_ratings`.
-- `ms_item_total`.
-- `ms_to_first_touch`: a reading-time proxy.
-- `ms_reply_to_final_touch`, `ms_reply_to_followup_click`, `ms_reply_to_second_opinion_click`.
-- `t_*`: the raw event times, in ms since the scenario appeared.
-
-**Questionnaires**
-
-- `item_trust`, `item_ai_understood`: per-item questions, 1–7.
-- `scen_emotional`, `scen_analytical`: end-of-study rating of this row's scenario, 1–7; blank for practice.
-- `comp_*` (competence), `warm_*` (warmth), `tw_*` (trustworthiness: trustworthy, honest, has my interests in mind), `trust_*` (trust in the recommendations), `aiund_*` (AI understood the situations), `expl_*` (I understood its reasoning), `rel_*` (would rely on it), `human_*` (humanlikeness word pairs): all 1–7.
-- `<block>_mean`: the mean of each block.
+- `interface`: `messaging` or `tool`. `decision_type`: `emotional` or `analytical`. `topic_pair` links each emotional item with its analytical twin.
+- `first_answer`, `final_answer`: 0 = definitely Option A, 5 = no preference, 10 = definitely Option B. `first_choice` / `final_choice` say which option each leans toward (A, B or none).
+- `ai_recommended` (A or B) and `ai_position` (where the advice sits on the scale: 8 for B, 2 for A).
+- `moved_toward_ai`: scale points moved toward the AI's option (negative = away).
+- `weight_of_advice`: (final − first) / (ai_position − first). 0 = ignored the advice, 1 = adopted it fully. `weight_of_advice_capped` limits it to 0–1, as is usual; the participant summary uses the capped version.
+- `switched_to_ai`: 1 if the final answer leans toward the AI's option and the first did not.
+- `asked_explanation`, `asked_second_opinion`, and `second_opinion_content` (agreed / disagreed / neutral relative to the first recommendation).
+- `item_trust`, `item_ai_understood`, `scen_type`, and the end-of-study items with `*_mean` columns: ratings, 1–7.
+- `sec_*`: time spent on each step, in seconds. `setting_*`: the design options in force. `raw_ms_*`: raw event times in milliseconds, for checking.
 
 No names, emails, IP addresses or free-text answers are collected.
 
 ---
 
-## Placeholders (all must be replaced before the real study)
+## Before the real study
 
-- **All 7 items** (practice P1, emotional E1–E3, analytical A1–A3): scenarios, options, attribute numbers, terse tool queries, and every AI text (`replies`, `followUp`, `secondOpinion`). Each is marked `placeholder: true`, and reviewer mode shows a "placeholder content" tag.
-- **Intro / consent, instructions, debrief.** The debrief currently discloses the opposite-advice rule; change it if you switch that option.
-- **All questionnaire items:** the per-item questions, the scenario ratings and every end-of-study scale. They are reasonable stand-ins, not validated scales.
-- **Interface chrome names:** "Assistant", "Assistant 2", "Robin", "Alex", "Decision workbook", `RECOMMEND`, `EXPLAIN`.
-- **Study title** ("Decision study").
-- **Recommendation strength** of 80 for every item.
+- **Items are drafts, not placeholders.** 1 neutral practice item (P1) and 4 matched topic pairs, each with one emotional and one analytical version: roommates (E1/A1), friends (E2/A2), part-time job (E3/A3), group project (E4/A4). Pilot them with 5–8 people before the real study: first answers should spread around the middle of the scale, emotional items should be rated more emotional than analytical ones, and both reply sides should seem about equally convincing. Reviewer mode flags any reply or scenario lengths that drift apart.
+- **Recommendation strength** is 8 (on the 0–10 scale) for every item; change it per item if the pilot suggests so.
+
+The questionnaire items are study-specific wording (not published scales) and are kept as final.
 
 ---
 
@@ -209,7 +181,7 @@ No names, emails, IP addresses or free-text answers are collected.
 
 **Advice and the slider**
 
-7. The same 0–100 slider is used for both task types: "Definitely A" to "Definitely B", with "No preference" in the middle. Answers are recorded as whole numbers.
+7. The same 0–10 slider is used for both task types: "Definitely A" to "Definitely B", with "No preference" in the middle. Answers are recorded as whole numbers.
 8. Each item has two scripted main replies, one per side, plus one explanation per side and three second opinions (for A, for B, neutral).
 9. The recommendation's slider position is only stored in the data. It is not shown, unless "lean as a number" is on.
 10. Each optional button can be used once per item. The final answer can't be saved while a reply is still loading.

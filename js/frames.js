@@ -17,6 +17,12 @@
     el.querySelectorAll('[data-extra]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.onExtra(b.getAttribute('data-extra')); });
     });
+    el.querySelectorAll('[data-tab]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        appTab.idx = Number(b.getAttribute('data-tab'));
+        F.render(el, ctx);
+      });
+    });
     el.querySelectorAll('[data-scroll]').forEach(scrollToLatest);
   };
 
@@ -36,11 +42,12 @@
   }
 
   function extraButtons(ctx, cls) {
-    var x = ctx.extras, P = C.text.panel;
+    var x = ctx.extras;
     if (!x || !x.inFrame || !x.enabled) return '';
     var b = function (kind, label, done) {
       return '<button type="button" class="' + cls + '" data-extra="' + kind + '"' + (done ? ' disabled' : '') + '>' + esc(label) + '</button>';
     };
+    var P = C.text.panel;
     return (x.followUp ? b('followup', P.followUpButton, x.followupDone) : '') + b('second', P.secondOpinionButton, x.secondDone);
   }
 
@@ -130,7 +137,7 @@
   /* Tool                                                                */
   /* ================================================================== */
   function queryText(ctx) {
-    return ctx.options.toolQuery === 'terse' && ctx.item.toolQuery ? ctx.item.toolQuery : ctx.item.askText;
+    return ctx.item.askText;   // always the chat message, word for word
   }
 
   function tool(ctx) {
@@ -144,6 +151,8 @@
     var runBtn = '<button class="run-btn' + (runEnabled ? ' is-ready' : '') + '" type="button" data-act="ask"' + (runEnabled ? '' : ' disabled') + '>' +
       '<span class="run-icon" aria-hidden="true">▶</span>' + esc(t.runButton) + '</button>';
     var lock = !turns.length && !ctx.canAsk ? '<div class="frame-lock">' + esc(t.lockedHint) + '</div>' : '';
+
+    if (look === 'app') return app(ctx, t, runEnabled, pending, lock);
 
     if (look === 'light') {
       return '<div class="tool tool--light" data-frame="tool">' +
@@ -261,6 +270,131 @@
         '<span class="out-status">' + esc(pending ? t.running : t.ready) + '</span></div>' +
       '<div class="out-body" data-scroll>' + (runs || '<div class="out-empty">' + esc(t.outputEmpty) + '</div>') + '</div>' +
     '</section>';
+  }
+
+  /* ================================================================== */
+  /* Tool, "App" look: decision-support software, not a spreadsheet      */
+  /* ================================================================== */
+  /* Which result tab is open. Kept outside the render so a re-render keeps
+     it; a new result (or a new item) opens its own tab automatically. */
+  var appTab = { key: '', count: 0, idx: 0 };
+
+  function app(ctx, t, runEnabled, pending, lock) {
+    var a = t.app, item = ctx.item, turns = ctx.rec.turns;
+    var runBtn = '<button class="run-btn ap-run' + (runEnabled ? ' is-ready' : '') + '" type="button" data-act="ask"' + (runEnabled ? '' : ' disabled') + '>' +
+      '<span class="run-icon" aria-hidden="true">▶</span>' + esc(a.runButton) + '</button>';
+    var state = '<span class="ap-state' + (pending ? ' is-busy' : '') + '"><i aria-hidden="true"></i>' + esc(pending ? a.processing : t.ready) + '</span>';
+
+    return '<div class="tool tool--app" data-frame="tool">' +
+      '<header class="ap-bar"><span class="ap-logo" aria-hidden="true"></span>' +
+        '<span class="ap-title">' + esc(a.title) + '</span><span class="ap-ver">' + esc(a.version) + '</span>' + state +
+      '</header>' +
+      '<div class="ap-main">' +
+        '<section class="ap-in">' +
+          '<div class="ap-pane-head">' + esc(a.inputTitle) + '</div>' +
+          '<div class="ap-in-body">' +
+            '<label class="ap-label">' + esc(t.queryLabel) + '</label><div class="ap-query">' + esc(queryText(ctx)) + '</div>' +
+            '<div class="ap-label">' + esc(t.inputsLabel) + '</div>' +
+            '<div class="ap-cards">' + appCard(item, 'A') + appCard(item, 'B') + '</div>' +
+          '</div>' +
+          '<div class="ap-actions">' + runBtn + lock + '</div>' +
+        '</section>' +
+        appOutput(ctx, t, a, pending) +
+      '</div>' +
+      '<footer class="ap-foot">' +
+        '<span class="ap-foot-id">' + esc(a.sessionLabel) + ' ' + esc(runId(item.id, 0)) + '</span></footer>' +
+    '</div>';
+  }
+
+  function appCard(item, side) {
+    var o = item['option' + side];
+    var attrs = (item.attributes || []).map(function (x) {
+      return '<div class="ap-attr"><span>' + esc(x.label) + '</span><b>' + esc(side === 'A' ? x.a : x.b) + '</b></div>';
+    }).join('');
+    var hasName = item.attributes && item.attributes.length;
+    return '<div class="ap-card"><div class="ap-card-head">' + esc(o.label) + '</div>' +
+      (hasName ? '<div class="ap-card-name">' + esc(o.name) + '</div>' : '') +
+      '<div class="ap-card-text">' + (item.type === 'emotional' ? '“' + esc(o.text) + '”' : esc(o.text)) + '</div>' +
+      (attrs ? '<div class="ap-attrs">' + attrs + '</div>' : '') + '</div>';
+  }
+
+  /* Output pane: one tab per AI turn, shown as a report with labelled fields.
+     The Summary field holds exactly the same text as the chat reply. */
+  function appOutput(ctx, t, a, pending) {
+    var turns = ctx.rec.turns, item = ctx.item;
+    var key = item.id + '|' + (ctx.rec.started_at || '');
+    if (appTab.key !== key || appTab.count !== turns.length) {
+      appTab = { key: key, count: turns.length, idx: Math.max(0, turns.length - 1) };
+    }
+    var idx = Math.min(appTab.idx, Math.max(0, turns.length - 1));
+    var secondNote = ctx.options.secondOpinionSource === 'same' ? t.secondSameNote : t.secondSeparateNote;
+    var tabName = function (turn) {
+      return turn.kind === 'main' ? a.tabMain : turn.kind === 'followup' ? a.kindFollowUp : a.kindSecond;
+    };
+
+    var tabs = turns.map(function (turn, i) {
+      return '<button type="button" role="tab" class="ap-tab' + (i === idx ? ' on' : '') + '" data-tab="' + i + '" aria-selected="' + (i === idx) + '">' +
+        esc(tabName(turn)) + (turn.shown ? '' : ' <span class="ap-tab-busy" aria-hidden="true">…</span>') + '</button>';
+    }).join('');
+
+    var panel = '';
+    var turn = turns[idx];
+    if (turn) {
+      var type = turn.kind === 'main' ? a.kindMain : turn.kind === 'followup' ? a.kindFollowUp : a.kindSecond + ' · ' + secondNote;
+      var row = function (k, v) { return '<tr><th>' + esc(k) + '</th><td>' + v + '</td></tr>'; };
+      if (turn.shown) {
+        var text = ctx.turnText(turn);
+        var seed = hash(item.id + ':' + turn.kind);
+        var fieldCount = 1 + (item.attributes || []).length + ((item.attributes || []).length ? 1 : 0);
+        var words = String(text).split(/\s+/).filter(Boolean).length;
+        var S = a.stats;
+        panel = '<div class="ap-report" data-latest>' +
+          '<div class="ap-res-label">' + esc(a.rationaleLabel) + '</div>' +
+          '<div class="run-body">' + U.paras(text) + '</div>' +
+          '<div class="ap-res-label ap-res-label--details">' + esc(a.detailsLabel) + '</div>' +
+          '<table class="ap-fields">' +
+            row(a.typeLabel, esc(type)) +
+            (turn.kind === 'main' ? row(a.recommendedLabel, '<b>' + esc(recLabel(ctx)) + '</b>') : '') +
+            row(a.runLabel, esc(runId(item.id, idx + 1)) + ' · ' + esc(secs(turn))) +
+            row(S.inputs, esc(U.fill(S.inputsValue, { options: 2, fields: fieldCount * 2 }))) +
+            row(S.factors, esc(String(6 + seed % 9))) +
+            row(S.comparisons, esc(String(40 + seed % 160))) +
+            row(S.tokens, esc(U.fill(S.tokensValue, { n: 180 + seed % 140, out: Math.round(words * 1.33) }))) +
+            row(S.compute, esc((0.3 + (seed % 90) / 100).toFixed(2) + ' ' + S.computeUnit)) +
+          '</table>' +
+        '</div>';
+      } else {
+        panel = '<div class="ap-report" data-latest data-pending>' +
+          '<table class="ap-fields">' + row(a.typeLabel, esc(type)) + '</table>' +
+          '<div class="run-body is-busy" role="status"><span class="bar"><i></i></span><span>' + esc(a.processing) + '</span></div>' +
+        '</div>';
+      }
+    }
+
+    var actions = extraButtons(ctx, 'out-btn');
+    return '<section class="ap-out">' +
+      '<div class="ap-pane-head"><span>' + esc(a.outputTitle) + '</span>' +
+        (actions ? '<span class="out-actions">' + actions + '</span>' : '') + '</div>' +
+      (tabs ? '<div class="ap-tabs" role="tablist">' + tabs + '</div>' : '') +
+      '<div class="ap-out-body" data-scroll>' + (panel || '<div class="out-empty">' + esc(a.outputEmpty) + '</div>') + '</div>' +
+    '</section>';
+  }
+
+  function secs(turn) {
+    return ((turn.shown_at - turn.requested_at) / 1000).toFixed(1) + ' s';
+  }
+
+  /* Small stable hash, so made-up IDs and statistics are the same for every
+     participant who sees a given item (never random per person). */
+  function hash(s) {
+    var h = 0; s = String(s);
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+
+  /* Stable, made-up run ID so the same item always shows the same ID. */
+  function runId(itemId, n) {
+    return '#' + (hash(String(itemId) + ':' + n) % 0xfffff).toString(16).toUpperCase().padStart(5, '0');
   }
 
   window.Frames = F;
