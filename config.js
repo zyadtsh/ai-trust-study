@@ -98,9 +98,10 @@ window.STUDY_CONFIG = {
 
     secondOpinion: {
       label: "What the second opinion says",
-      what: "“Get a second opinion” always shows a second scripted AI reply; this picks which one.",
-      "default": "neutral",
+      what: "Whether participants can ask for a second opinion, and if so which scripted reply it shows.",
+      "default": "off",
       choices: {
+        off:      { label: "Off (no second opinion)", note: "No “Get a second opinion” button. Every final answer reflects only the main AI’s advice, so weight of advice is clean on every decision, and the session is a little shorter. You lose the second-opinion request as a measure, and “Who gives the second opinion” no longer matters." },
         neutral:  { label: "Neutral", note: "A second AI reply that lays out both options without picking one. The click itself is the measure (wanting to check); the content pushes neither way, though it may pull final answers toward the middle." },
         agree:    { label: "Agrees", note: "Reaches the same recommendation with different reasoning, like regenerating an answer. People who click get a double dose of the same advice, which inflates their shift toward it." },
         disagree: { label: "Disagrees", note: "Recommends the other side. Creates real conflict between the two AI answers; final answers of people who click become hard to read as trust in the first reply." }
@@ -193,7 +194,7 @@ window.STUDY_CONFIG = {
         '<li>Give your first answer on the slider.</li>' +
         '<li>Get the AI’s recommendation.</li>' +
         '<li>Give your final answer on the same slider. You can keep your first answer or change it.</li>' +
-        '<li>If you like, you can get a second opinion before your final answer.</li>' +
+        '<li data-if="secondOpinion">If you like, you can get a second opinion before your final answer.</li>' +
         '</ol>' +
         '<p>There are no right or wrong answers. We’ll start with one practice item.</p>',
       button: "Start the practice item"
@@ -348,26 +349,23 @@ window.STUDY_CONFIG = {
   endMeasures: {
     points: 7,
     blocks: [
-      /* Shortened set. Cut: trustworthiness (overlaps trust), AI understood the
-         situations (asked per item already), explainability, reliance (overlaps
-         trust), and the third competence and warmth items. See git history. */
+      /* Short set: 6 questions (was 11). Kept the two strongest trust items,
+         one competence and one warmth item, and the two most direct
+         humanlikeness pairs (the interface manipulation check). Cut:
+         "I could depend on…", "capable", "friendly", "Artificial–Lifelike",
+         "Fake–Natural". Earlier cuts and the full set are in git history. */
       { id: "trust", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
         { id: "trust_1", text: "I trusted the AI’s recommendations." },
-        { id: "trust_2", text: "The AI’s recommendations were reliable." },
-        { id: "trust_3", text: "I could depend on the AI’s recommendations." }
+        { id: "trust_2", text: "The AI’s recommendations were reliable." }
       ] },
       { id: "competence", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "comp_1", text: "The AI was competent." },
-        { id: "comp_2", text: "The AI was capable." }
+        { id: "comp_1", text: "The AI was competent." }
       ] },
       { id: "warmth", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "warm_1", text: "The AI seemed warm." },
-        { id: "warm_2", text: "The AI seemed friendly." }
+        { id: "warm_1", text: "The AI seemed warm." }
       ] },
       { id: "humanlike", kind: "pairs", prompt: "Please rate your impression of the AI on these scales.", items: [
         { id: "human_1", left: "Machinelike", right: "Humanlike" },
-        { id: "human_2", left: "Artificial", right: "Lifelike" },
-        { id: "human_3", left: "Fake", right: "Natural" },
         { id: "human_4", left: "Like using a tool", right: "Like talking to someone" }
       ] }
     ]

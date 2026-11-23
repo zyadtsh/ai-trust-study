@@ -148,8 +148,9 @@
   }
 
   function instructionsScreen(app) {
-    var t = C.text.instructions;
-    app.innerHTML = page(t.title, t.html + '<div class="actions"><button class="btn primary" id="next" type="button">' + esc(t.button) + '</button></div>');
+    var t = C.text.instructions, html = t.html;
+    if (A.opts().secondOpinion === 'off') html = html.replace(/<li data-if="secondOpinion">[\s\S]*?<\/li>/g, '');
+    app.innerHTML = page(t.title, html + '<div class="actions"><button class="btn primary" id="next" type="button">' + esc(t.button) + '</button></div>');
     document.getElementById('next').addEventListener('click', function () { A.go({ name: 'item', index: 0 }); });
   }
 
@@ -268,12 +269,10 @@
         '<h3>' + esc(t.researcherHeading) + '</h3>' +
         '<div class="researcher-body">' +
           (nextUrl ? '<a class="btn primary" href="' + esc(nextUrl) + '">Start next participant (pid ' + (A.session.pid + 1) + ')</a>' : '') +
-          '<button class="btn secondary" id="dl-this" type="button">Download this session (CSV)</button>' +
-          '<button class="btn secondary" id="dl-all" type="button">Download all participants: decisions (CSV)</button>' +
-          '<button class="btn secondary" id="dl-sum" type="button">Download all participants: summary (CSV)</button>' +
-          '<button class="btn secondary" id="dl-book" type="button">Download codebook (CSV)</button>' +
+          '<button class="btn secondary" id="dl-all" type="button">Download data (CSV)</button>' +
+          '<a class="btn secondary" href="results.html" target="_blank" rel="noopener">Open results dashboard</a>' +
           '<p class="muted small">' + participantSessions.length + ' participant session(s) stored in this browser for this address' +
-          (D.storageOK ? '' : ' — browser storage is unavailable, so only “this session” can be downloaded') + '.</p>' +
+          (D.storageOK ? '' : ' — browser storage is unavailable, so the download holds only this session') + '.</p>' +
         '</div>' +
       '</section>');
     if (!A.review) {
@@ -286,21 +285,10 @@
       };
       document.addEventListener('keydown', reveal);
     }
-    document.getElementById('dl-this').addEventListener('click', function () {
-      D.download('haitrust_session_' + A.session.session_id + '_decisions_' + D.fileStamp() + '.csv', D.toCSV([A.session]));
-    });
-    var participantList = function () {
-      var sessions = Object.values(D.loadAll()).filter(function (s) { return !s.is_review; });
-      return sessions.length ? sessions : [A.session];
-    };
+    /* All participant sessions in this browser (this one included) in one file. */
     document.getElementById('dl-all').addEventListener('click', function () {
-      D.download('haitrust_decisions_' + D.fileStamp() + '.csv', D.toCSV(participantList()));
-    });
-    document.getElementById('dl-sum').addEventListener('click', function () {
-      D.download('haitrust_participants_' + D.fileStamp() + '.csv', D.toSummaryCSV(participantList()));
-    });
-    document.getElementById('dl-book').addEventListener('click', function () {
-      D.download('haitrust_codebook.csv', D.codebookCSV());
+      var sessions = D.exportList(false);
+      D.download('haitrust_data_' + D.fileStamp() + '.csv', D.toCSV(sessions.length ? sessions : [A.session]));
     });
   }
 
@@ -354,7 +342,7 @@
       ui: A.session.ui, options: o, item: A.item, rec: r,
       canAsk: r.step === 'ask', turnText: turnText, onAsk: onAsk,
       extras: {
-        inFrame: o.optionalButtons === 'frame', enabled: r.step === 'reply', followUp: o.followUp === 'on',
+        inFrame: o.optionalButtons === 'frame', enabled: r.step === 'reply', followUp: o.followUp === 'on', second: o.secondOpinion !== 'off',
         followupDone: !!r.followup_clicked, secondDone: !!r.second_opinion_clicked
       },
       onExtra: extra
@@ -434,10 +422,11 @@
         '<div class="answer-sub">' + esc(item.question) + ' ' + esc(P.finalSub) + '</div>' +
         sliderHTML('final', item, rec);
       if (step === 'reply') {
-        h += (o.optionalButtons === 'frame' ? '' :
+        var secondOn = o.secondOpinion !== 'off';
+        h += (o.optionalButtons === 'frame' || (!secondOn && o.followUp !== 'on') ? '' :
           '<div class="optional"><span class="optional-label">' + esc(P.optionalHeading) + '</span>' +
           (o.followUp === 'on' ? '<button class="btn secondary" type="button" data-act="followup"' + (rec.followup_clicked ? ' disabled' : '') + '>' + esc(P.followUpButton) + '</button>' : '') +
-          '<button class="btn secondary" type="button" data-act="second"' + (rec.second_opinion_clicked ? ' disabled' : '') + '>' + esc(P.secondOpinionButton) + '</button>' +
+          (secondOn ? '<button class="btn secondary" type="button" data-act="second"' + (rec.second_opinion_clicked ? ' disabled' : '') + '>' + esc(P.secondOpinionButton) + '</button>' : '') +
         '</div>') +
         '<div class="actions"><button class="btn primary" type="button" data-act="submit-final"' + (rec.final_value == null || pending ? ' disabled' : '') + '>' + esc(P.submitFinal) + '</button>' +
           '<span class="pending-note"' + (pending ? '' : ' hidden') + '>' + esc(P.pendingNote) + '</span></div>';
@@ -523,7 +512,7 @@
     var r = A.rec;
     if (r.step !== 'reply') return;
     if (kind === 'followup') { if (r.followup_clicked) return; r.followup_clicked = 1; mark('followup_click'); }
-    else { if (r.second_opinion_clicked) return; r.second_opinion_clicked = 1; mark('second_click'); }
+    else { if (r.second_opinion_clicked || A.opts().secondOpinion === 'off') return; r.second_opinion_clicked = 1; mark('second_click'); }
     addTurn(kind);
   }
 

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Study results (researchers)</title>
+  <style>
+    /* Results dashboard for the experiment leaders. Not linked anywhere a
+       participant can reach; open it from reviewer mode → Data, or from the
+       researcher tools on the debrief (Shift + D). Light mode only, like the
+       study itself. Colours follow the dataviz reference palette: categorical
+       slot 1 (blue) = Messaging, slot 2 (orange) = Tool. */
+    :root {
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --grid: #e1e0d9;
+      --axis: #c3c2b7;
+      --ring: rgba(11, 11, 11, 0.10);
+      --messaging: #2a78d6;
+      --tool: #eb6834;
+      --neutral: #52514e;
+      --warn-bg: #fff6df;
+      --warn-ink: #8a5a00;
+      color-scheme: light;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 24px 64px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    h2 { font-size: 16px; margin: 32px 0 4px; }
+    .lead { color: var(--ink-2); margin: 0 0 12px; max-width: 760px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 12.5px; }
+
+    .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; margin: 16px 0 8px; }
+    .bar button, .bar label.btn { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--axis); background: #fff; color: var(--ink); cursor: pointer; }
+    .bar button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .bar label.chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-2); }
+    .bar .src { margin-left: auto; font-size: 12.5px; color: var(--ink-2); }
+    input[type=file] { display: none; }
+
+    .bar select { font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--axis); background: #fff; }
+    .notice.example { background: #e7f1fb; color: #0d366b; }
+    .notice { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; font-size: 13px; margin: 8px 0; }
+
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+    .tile { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 14px; }
+    .tile .k { font-size: 12.5px; color: var(--ink-2); }
+    .tile .v { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .tile .s { font-size: 12px; color: var(--muted); }
+    .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+
+    .legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); margin: 8px 0 0; }
+    .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-top: 10px; }
+    .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; margin-top: 10px; }
+    .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 14px 10px; }
+    .card h3 { font-size: 14px; margin: 0; }
+    .card .sub { font-size: 12.5px; color: var(--ink-2); margin: 2px 0 6px; }
+    .card .read { font-size: 12.5px; color: var(--ink-2); margin: 4px 0 0; }
+    .card svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .card svg.ix { max-width: 440px; }
+    .card svg.dots { max-width: 640px; }
+    details { margin-top: 6px; }
+    summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+
+    table.t { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; overflow: hidden; }
+    .t th, .t td { padding: 6px 10px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+    .t th { font-weight: 600; color: var(--ink-2); font-size: 12px; background: #f4f3f0; }
+    .t td.n, .t th.n { text-align: right; font-variant-numeric: tabular-nums; }
+    .t tr:last-child td { border-bottom: 0; }
+    tr.exp { cursor: pointer; }
+    tr.exp:hover td { background: #f4f3f0; }
+    tr.exp.is-open td { background: #eef3fb; }
+    td.tg { width: 28px; padding-right: 0; }
+    .tgl { border: 0; background: none; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer; padding: 0 4px; }
+    tr.detail > td { background: #fafaf8; padding: 10px 12px 14px; }
+    tr.detail[hidden] { display: none; }
+    .dk { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+    .dgrid { display: grid; grid-template-columns: minmax(240px, 320px) 1fr; gap: 20px; align-items: start; }
+    table.inner { border-radius: 6px; }
+    .inner th, .inner td { padding: 4px 8px; }
+    .inner td:first-child { white-space: nowrap; }
+    .inner tr.muted td { color: var(--muted); }
+    svg.hist { display: block; width: 100%; max-width: 320px; height: auto; }
+    .calc { border-bottom: 1px dotted var(--muted); cursor: help; }
+    code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+    .pill2 { display: inline-block; font-size: 12px; background: #fff; border: 1px solid var(--ring); border-radius: 4px; padding: 1px 7px; margin: 0 4px 4px 0; font-variant-numeric: tabular-nums; }
+    .flag { display: inline-block; font-size: 11.5px; color: var(--warn-ink); background: var(--warn-bg); border-radius: 4px; padding: 0 6px; margin: 1px 4px 1px 0; }
+    .ok { color: var(--muted); font-size: 12px; }
+    .scroll { overflow-x: auto; margin-top: 10px; }
+
+    #tip { position: fixed; pointer-events: none; z-index: 10; background: #fff; color: var(--ink); border: 1px solid var(--ring); box-shadow: 0 4px 14px rgba(0,0,0,.10); border-radius: 8px; padding: 6px 9px; font-size: 12.5px; line-height: 1.4; max-width: 260px; }
+    #tip[hidden] { display: none; }
+    [data-tip] { cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="root"></div>
+  <div id="tip" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/results.js"></script>
+</body>
+</html>

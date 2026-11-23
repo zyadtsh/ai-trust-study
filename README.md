@@ -47,8 +47,8 @@ In reviewer mode, the yellow label in the top bar shows where you are, for examp
 3. The participant goes through consent, instructions, 1 practice item, 8 decisions, the end questions and the debrief.
 4. On the debrief screen, press **Shift + D** to show the researcher tools. They are hidden from participants. The tools are:
    - **Start next participant**, which opens the next pid.
-   - Download this session as CSV.
-   - Download all participant sessions in this browser as CSV.
+   - Download data (CSV): every participant session in this browser, in one file.
+   - Open results dashboard.
 
    Reviewer mode (`?review=1` → Data) offers the same exports.
 
@@ -91,7 +91,7 @@ The same steps run in both interfaces. Only the right-hand panel changes.
    The words are identical, and so are the font size, the line height and the scroll rule: a new reply is shown from its first line.
 5. **Final answer** on the same slider, with a marker at the first answer.
 6. **Optional.**
-   - "Get a second opinion" (always available) shows a second scripted AI reply.
+   - "Get a second opinion" is **off by default**. When switched on in `config.js` (designOptions → secondOpinion), it shows a second scripted AI reply.
    - "Get an explanation" (only if switched on) shows a scripted explanation of the main recommendation.
 
    Both clicks are logged.
@@ -110,8 +110,8 @@ The same steps run in both interfaces. Only the right-hand panel changes.
 | Which side the AI recommends | **Opposite to first answer** | opposite / fixed per item |
 | Lean as a number | **Off** | off / on |
 | Second scripted turn ("Get an explanation") | **Off** | off / on |
-| What the second opinion says | **Neutral** | neutral / agrees / disagrees |
-| Who gives the second opinion | **The same AI again** ("run 2" in the Tool) | second AI / same AI again |
+| Second opinion | **Off** (no button, so every final answer reflects only the main AI) | off / neutral / agrees / disagrees |
+| Who gives the second opinion (only when it is on) | **The same AI again** ("run 2" in the Tool) | second AI / same AI again |
 | Where the optional buttons sit | **Shared left panel** | panel / inside each interface |
 | Trust questions after each item | **On** | on / off |
 | Final slider starts | **At the first answer** | first / blank |
@@ -133,27 +133,26 @@ When the Design options drawer is open, the study shifts left so you can watch e
 
 ## Data files
 
-The researcher tools (Shift + D on the debrief, or reviewer mode → Data) download three CSV files:
+There is **one data file**: **Download data (CSV)** in the researcher tools (Shift + D on the debrief, or reviewer mode → Data). It holds every participant session stored in that browser, one row per participant per decision (51 columns). Reviewer sessions are left out unless you tick *include reviewer sessions* in reviewer mode.
 
-| File | One row per | Use it for |
-|---|---|---|
-| `haitrust_participants_….csv` | participant | **Most analyses.** Each person's averages split by decision type: weight of advice, trust ratings, switches to the AI, second-opinion requests, the decision-type check, and the end-of-study scale means. Practice is left out. |
-| `haitrust_decisions_….csv` | participant × decision | Item-level or mixed-model analyses, and checking individual answers. |
-| `haitrust_codebook.csv` | column | **What every column in both files means**, with its values and scale ends. Generated from `config.js`, so it always matches the current questions. |
+The **results dashboard** (`results.html`, linked from the same places) charts the data, reads one or more of these files from different laptops, and has **Download codebook**, which explains every column with its values and scale ends. The codebook is generated from `config.js`, so it always matches the current questions. Click any row in the dashboard's item or participant tables to expand it: an item shows its options, the spread of first answers and a Messaging vs. Tool breakdown; a participant shows every decision they made, in order, and their end-of-study ratings. **Example data** loads made-up scenarios (hypothesis supported, interface effect only, no effect, opposite, and a broken manipulation with data problems) for checking the dashboard; it is never saved or exported.
 
-**Before analysing**, drop rows where `is_reviewer_session = 1`, `session_completed = 0` or `item_jumped_in_review = 1`, and, in the decisions file, the practice item (`is_practice = 1`).
+**Before analysing**, drop rows where `is_reviewer_session = 1`, `session_completed = 0`, `item_jumped_in_review = 1` or `is_practice = 1`.
 
-**Key columns in the decisions file**
+**Key columns**
 
 - `interface`: `messaging` or `tool`. `decision_type`: `emotional` or `analytical`. `topic_pair` links each emotional item with its analytical twin.
 - `first_answer`, `final_answer`: 0 = definitely Option A, 5 = no preference, 10 = definitely Option B. `first_choice` / `final_choice` say which option each leans toward (A, B or none).
 - `ai_recommended` (A or B) and `ai_position` (where the advice sits on the scale: 8 for B, 2 for A).
 - `moved_toward_ai`: scale points moved toward the AI's option (negative = away).
-- `weight_of_advice`: (final − first) / (ai_position − first). 0 = ignored the advice, 1 = adopted it fully. `weight_of_advice_capped` limits it to 0–1, as is usual; the participant summary uses the capped version.
+- `weight_of_advice`: (final − first) / (ai_position − first), limited to 0–1 as is usual. 0 = ignored the advice, 1 = adopted it fully.
 - `switched_to_ai`: 1 if the final answer leans toward the AI's option and the first did not.
-- `asked_explanation`, `asked_second_opinion`, and `second_opinion_content` (agreed / disagreed / neutral relative to the first recommendation).
-- `item_trust`, `item_ai_understood`, `scen_type`, and the end-of-study items with `*_mean` columns: ratings, 1–7.
-- `sec_*`: time spent on each step, in seconds. `setting_*`: the design options in force. `raw_ms_*`: raw event times in milliseconds, for checking.
+- `asked_second_opinion` and `second_opinion_content` (agreed / disagreed / neutral relative to the first recommendation): only present when the second opinion is switched on, and then the dashboard also shows its chart.
+- `item_trust`, `item_ai_understood`, `scen_type`, and the end-of-study items with their `*_mean` columns: ratings, 1–7.
+- `sec_first_answer`, `sec_final_answer`, `sec_total`: time on the decision, in seconds.
+- `pid_prior_sessions`, `order_row`, `started_at`, `finished_at`: for checking repeats, counterbalancing and session length.
+
+Settings that stay fixed for the whole study (interface look, delays, second-opinion content and so on) are in `config.js` rather than repeated on every row.
 
 No names, emails, IP addresses or free-text answers are collected.
 

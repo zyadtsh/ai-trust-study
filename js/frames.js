@@ -48,7 +48,7 @@
       return '<button type="button" class="' + cls + '" data-extra="' + kind + '"' + (done ? ' disabled' : '') + '>' + esc(label) + '</button>';
     };
     var P = C.text.panel;
-    return (x.followUp ? b('followup', P.followUpButton, x.followupDone) : '') + b('second', P.secondOpinionButton, x.secondDone);
+    return (x.followUp ? b('followup', P.followUpButton, x.followupDone) : '') + (x.second ? b('second', P.secondOpinionButton, x.secondDone) : '');
   }
 
   function recLabel(ctx) {

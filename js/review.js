@@ -183,7 +183,7 @@
     var cols = [
       ['trial_number', '#'], ['item_id', 'item'], ['decision_type', 'type'], ['first_answer', 'first'], ['ai_recommended', 'AI rec.'],
       ['final_answer', 'final'], ['moved_toward_ai', 'moved to AI'], ['weight_of_advice', 'WOA'], ['asked_second_opinion', '2nd op.'],
-      ['asked_explanation', 'expl.'], ['sec_reading_and_first_answer', 'read s'], ['sec_reply_to_final_answer', 'decide s']
+      ['switched_to_ai', 'switched'], ['sec_first_answer', 'read s'], ['sec_final_answer', 'decide s']
     ];
     var table = rows.length
       ? '<div class="table-scroll"><table class="data-table"><thead><tr>' + cols.map(function (c) { return '<th>' + esc(c[1]) + '</th>'; }).join('') + '</tr></thead><tbody>' +
@@ -200,35 +200,19 @@
         '<dt>Item order</dt><dd>' + esc(s.order.join(' → ')) + '</dd>' +
       '</dl>' +
       '<h3>This session</h3>' + table +
-      '<p class="muted small">The CSV files have many more columns (ratings, timings, settings). The codebook explains every one.</p>' +
       '<div class="dr-actions">' +
-        '<button type="button" class="btn secondary" id="dl-this">Download this session (CSV)</button>' +
-        '<button type="button" class="btn secondary" id="dl-all">Download all: decisions (CSV)</button>' +
-        '<button type="button" class="btn secondary" id="dl-sum">Download all: participant summary (CSV)</button>' +
-        '<button type="button" class="btn secondary" id="dl-book">Download codebook (CSV)</button>' +
+        '<button type="button" class="btn secondary" id="dl-all">Download data (CSV)</button>' +
+        '<a class="btn secondary" href="results.html" target="_blank" rel="noopener">Open results dashboard</a>' +
         '<label class="rb-inline"><input type="checkbox" id="dl-incl-review"> include reviewer sessions</label>' +
       '</div>' +
       '<p class="muted small">' + all.length + ' session(s) stored in this browser (' + nReview + ' from reviewer mode).' +
-        (D.storageOK ? '' : ' Browser storage is unavailable here, so only this session can be exported.') + '</p>' +
+        (D.storageOK ? '' : ' Browser storage is unavailable here, so nothing is stored to export.') + '</p>' +
       '<div class="dr-danger"><button type="button" class="btn danger" id="dl-clear">Delete all stored sessions…</button></div>' +
     '</div>';
     drawer.scrollTop = scrollTop;
     wireClose();
-    document.getElementById('dl-this').addEventListener('click', function () {
-      D.download('haitrust_session_' + s.session_id + '_decisions_' + D.fileStamp() + '.csv', D.toCSV([s]));
-    });
-    var stored = function () {
-      var incl = document.getElementById('dl-incl-review').checked;
-      return Object.values(D.loadAll()).filter(function (x) { return incl || !x.is_review; });
-    };
     document.getElementById('dl-all').addEventListener('click', function () {
-      D.download('haitrust_decisions_' + D.fileStamp() + '.csv', D.toCSV(stored()));
-    });
-    document.getElementById('dl-sum').addEventListener('click', function () {
-      D.download('haitrust_participants_' + D.fileStamp() + '.csv', D.toSummaryCSV(stored()));
-    });
-    document.getElementById('dl-book').addEventListener('click', function () {
-      D.download('haitrust_codebook.csv', D.codebookCSV());
+      D.download('haitrust_data_' + D.fileStamp() + '.csv', D.toCSV(D.exportList(document.getElementById('dl-incl-review').checked)));
     });
     document.getElementById('dl-clear').addEventListener('click', function () {
       var n = Object.keys(D.loadAll()).length;
