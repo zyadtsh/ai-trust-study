@@ -18,4 +18,7 @@ mkdir -p site/js
 cp index.html config.js styles.css site/
 if [ -f config.local.js ]; then cp config.local.js site/; fi
 cp js/util.js js/data.js js/frames.js js/app.js js/review.js site/js/
+# Ask browsers to check for a newer copy on every visit, so an updated
+# config.js (items, text, settings) reaches everyone right away.
+printf '/*\n  Cache-Control: no-cache\n' > site/_headers
 echo "Made ./site with $(find site -type f | wc -l | tr -d ' ') files. Upload that folder to your host."
