@@ -10,7 +10,7 @@
   window.App = A;
 
   var params = new URLSearchParams(location.search);
-  var REVIEW_KEY = 'haitrust.review.v1';
+  var REVIEW_KEY = 'haitrust.review.v2';   // v2: only options that differ from the defaults are kept
   A.review = ['1', 'true', 'yes', 'on'].indexOf(String(params.get('review') || '').toLowerCase()) >= 0;
   A.skipDelays = false;
   A.screen = null;
@@ -23,13 +23,50 @@
   A.nPractice = function () { return D.practiceItems().length; };
   A.nMain = function () { return A.session.order.length; };
 
-  /* Saves the session to browser storage. Reviewer sessions are only kept once
-     they reach an item, so clicking around the intro doesn't fill storage. */
+  /* Saves the session to browser storage. A participant session is kept only
+     once they consent (so just opening a link leaves no trace); reviewer
+     sessions only once they reach an item. */
   function save() {
+    if (A.stale) return;
     if (A.review && !Object.keys(A.session.items).length) return;
+    if (!A.review && !A.session.consented && !Object.keys(A.session.items).length) return;
     if (!D.save(A.session)) showSaveWarning();
+    if (D.stale && !A.review) staleTab();
   }
+
+  /* Sends the session to the data endpoint (if one is set in config.js) and
+     updates the status line on the last screen. */
+  A.syncState = 'idle';
+  function sync() {
+    if (A.review || A.stale || !D.endpoint()) return;
+    A.syncState = 'saving';
+    renderSyncStatus();
+    var s = A.session, rev = s.rev;
+    D.send(s).then(function (st) {
+      if (A.session !== s) return;
+      A.syncState = st;
+      if (st === 'confirmed') { s.confirmed_rev = rev; D.save(s, { keepRev: true }); }
+      renderSyncStatus();
+    });
+  }
+
+  /* The same session moved on in another tab or window: stop this one, so its
+     older copy can't overwrite the newer answers. */
+  A.stale = false;
+  function staleTab() {
+    A.stale = true;
+    token++;                     // cancel pending reply timers
+    message('staleTitle', 'staleHtml');
+  }
+  window.addEventListener('storage', function () {
+    if (A.review || A.stale || !A.session || !A.session.consented) return;
+    var stored = D.loadAll()[A.session.session_id];
+    if (stored && (stored.rev || 0) > (A.session.rev || 0)) staleTab();
+  });
   function showSaveWarning() {
+    // Remote sessions still reach the Google Sheet without browser storage (only
+    // resuming after a reload is lost), so participants are not alarmed.
+    if (D.endpoint() && !A.review) return;
     if (document.getElementById('save-warning')) return;
     var box = document.createElement('div');
     box.id = 'save-warning';
@@ -46,19 +83,115 @@
     var problems = validateConfig();
     if (problems.length) showConfigProblems(problems);
     if (!C || !Array.isArray(C.items) || !D.mainItems().length) return;
+    if (A.review) {
+      var notes = deployWarnings();
+      if (notes.length) showConfigProblems(notes, 'Before sending the link to participants (reviewer mode only)');
+    }
 
     var options = D.defaultOptions();
     var saved = A.review ? (U.readJSON(REVIEW_KEY) || {}) : {};
     if (A.review) { options = D.applyOptions(options, saved.options); A.skipDelays = !!saved.skipDelays; }
     options = D.applyOptions(options, params);           // URL wins
 
-    var assignment = D.assign(params, options);
-    if (A.review && saved.ui && !params.get('ui')) assignment.ui = saved.ui;
-    A.session = D.newSession(assignment, options, A.review);
-    A.buildSeq();
-    if (window.Review) window.Review.init();
-    A.go({ name: 'intro' });
+    /* Participants: pick up an unfinished session after a reload or a closed
+       tab, and don't let someone take the study twice in this browser.
+       Add ?new=1 to the link to force a fresh session (for testing). Without a
+       pid this only happens when data is sent to an endpoint (remote links),
+       so a shared lab laptop never hands one person's session to the next. */
+    if (!A.review && !params.has('new')) {
+      var pid = D.pidFromParams(params), remote = !!D.endpoint();
+      var done = pid ? D.findCompleted(pid) : remote ? D.findCompleted(null) : null;
+      if (done) {
+        // Back on the debrief soon after finishing (e.g. a reload): show it again,
+        // with the withdraw box, and re-send if the last copy wasn't confirmed.
+        if (Date.now() - Date.parse(done.finished_at || 0) < 24 * 3600 * 1000) return resume(done);
+        if (remote && done.confirmed_rev !== done.rev) D.send(done);
+        return message('doneTitle', 'doneHtml');
+      }
+      var open = pid ? D.findResumable(pid) : remote ? D.findResumable(null) : null;
+      if (open) {
+        return message('resumeTitle', 'resumeHtml', { label: C.text.remote.resumeButton, onClick: function () { resume(open); } });
+      }
+    }
+
+    deviceGate(function () {
+      var assignment = D.assign(params, options, null);
+      if (A.review && saved.ui && !params.get('ui')) assignment.ui = saved.ui;
+      A.session = D.newSession(assignment, options, A.review);
+      // One shared link: the participant number comes from the data endpoint
+      // when they press Start on the consent page (so people who only open the
+      // link don't use up numbers). Until then the assignment above is a placeholder.
+      A.needPid = !A.review && !D.pidFromParams(params) && !!D.endpoint() && !!(C.dataCollection || {}).assignPid;
+      A.buildSeq();
+      if (window.Review) window.Review.init();
+      A.go({ name: 'intro' });
+    });
   };
+
+  /* Applies the participant number handed out by the data endpoint. */
+  function applyServerPid(pid) {
+    var s = A.session, a = D.assign(params, s.options, pid);
+    s.pid = a.pid;
+    s.ui = a.ui;
+    s.order_row = a.order_row;
+    s.order_seed = a.order_seed;
+    s.assignment_method = a.assignment_method;
+    s.order = D.buildOrder(s.options.itemOrder, a.order_row, a.order_seed).map(function (i) { return i.id; });
+    s.pid_prior_sessions = D.priorSessionsForPid(a.pid);
+    A.buildSeq();
+  }
+
+  function resume(s) {
+    A.session = s;
+    s.resumes = (s.resumes || 0) + 1;
+    A.buildSeq();
+    var at = s.at || { name: 'intro' };
+    if (at.name === 'item' && A.seq[at.index] == null) at = { name: 'intro' };
+    A.go(at.name === 'item' ? { name: 'item', index: at.index } : { name: at.name });
+  }
+
+  /* A plain message page (welcome back, already done, use a computer, other tab),
+     optionally with one button. */
+  function message(titleKey, htmlKey, button) {
+    var t = C.text.remote, app = document.getElementById('app');
+    app.className = 'screen-message';
+    app.innerHTML = page(t[titleKey], U.fill(t[htmlKey], { contact: esc(contact()), width: minWidth() }) +
+      (button ? '<div class="actions"><button class="btn primary" id="msg-btn" type="button">' + esc(button.label) + '</button></div>' : ''));
+    if (button) document.getElementById('msg-btn').addEventListener('click', button.onClick);
+  }
+
+  function contact() { return String((C.dataCollection || {}).contact || ''); }
+  function minWidth() { return Number((C.dataCollection || {}).minWidth) || 0; }
+
+  /* Participants need a screen wide enough for the two panels side by side.
+     On a phone or a narrow window this waits, and continues on its own once
+     the window is wide enough. */
+  function deviceGate(then) {
+    if (A.review || !minWidth() || window.innerWidth >= minWidth()) return then();
+    message('gateTitle', 'gateHtml');
+    // Check on resize and also every second (some browsers don't report every resize, e.g. full-screen toggles).
+    var timer = null;
+    var check = function () {
+      if (window.innerWidth < minWidth()) return;
+      window.removeEventListener('resize', check);
+      clearInterval(timer);
+      then();
+    };
+    window.addEventListener('resize', check);
+    timer = setInterval(check, 1000);
+  }
+
+  /* Warn before leaving mid-study; the session is resumed if they come back. */
+  window.addEventListener('beforeunload', function (e) {
+    if (A.review || !A.session || !A.screen) return;
+    if (['instructions', 'item', 'interlude', 'end', 'scen'].indexOf(A.screen.name) < 0) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+  /* Last-chance copy to the data endpoint when the page goes away. */
+  window.addEventListener('pagehide', function () {
+    if (A.session && !A.review && !A.stale && A.session.consented) D.beacon(A.session);
+  });
 
   A.buildSeq = function () {
     A.seq = D.practiceItems().map(function (i) { return i.id; }).concat(A.session.order);
@@ -66,7 +199,13 @@
 
   A.persistReview = function () {
     if (!A.review) return;
-    U.writeJSON(REVIEW_KEY, { options: A.session.options, ui: A.session.ui, skipDelays: A.skipDelays });
+    // Save only the options that differ from config.js, so a later change of a
+    // default reaches reviewer mode instead of being masked by an old saved copy.
+    var defs = D.defaultOptions(), changed = {};
+    Object.keys(A.session.options || {}).forEach(function (k) {
+      if (A.session.options[k] !== defs[k]) changed[k] = A.session.options[k];
+    });
+    U.writeJSON(REVIEW_KEY, { options: changed, ui: A.session.ui, skipDelays: A.skipDelays });
   };
 
   /* ------------------------------------------------------------------ */
@@ -85,9 +224,11 @@
       A.session.completed = 1;
       A.session.finished_at = A.session.finished_at || new Date().toISOString();
     }
+    if (!screen.jumpStep) A.session.at = { name: screen.name, index: screen.index };
     save();
     A.render();
     window.scrollTo(0, 0);
+    if (A.session.consented && screen.name !== 'intro' && !screen.jumpStep) sync();
   };
 
   A.render = function () {
@@ -129,21 +270,35 @@
 
   function introScreen(app) {
     var t = C.text.intro;
-    var reused = A.session.pid_prior_sessions
+    // Researcher note for lab sessions only; remote participants never see it.
+    var reused = A.session.pid_prior_sessions && !D.endpoint()
       ? '<p class="pid-warning">Researcher: pid ' + esc(A.session.pid) + ' has already been used ' + A.session.pid_prior_sessions +
         ' time(s) in this browser. If this is a new participant, change the address to the next pid before starting. ' +
         '(This session will be marked <code>pid_prior_sessions=' + A.session.pid_prior_sessions + '</code> in the data.)</p>'
       : '';
     app.innerHTML = page(t.title,
-      reused + t.html +
+      reused + U.fill(t.html, { contact: esc(contact()), storage: D.endpoint() ? t.storageRemote : t.storageLocal }) +
       '<label class="consent"><input type="checkbox" id="consent"' + (A.session.consented ? ' checked' : '') + '> <span>' + esc(t.consentLabel) + '</span></label>' +
       '<div class="actions"><button class="btn primary" id="next" type="button"' + (A.session.consented ? '' : ' disabled') + '>' + esc(t.button) + '</button></div>');
     var box = document.getElementById('consent'), next = document.getElementById('next');
     box.addEventListener('change', function () { next.disabled = !box.checked; });
     next.addEventListener('click', function () {
-      if (!box.checked) return;
-      A.session.consented = 1;
-      A.go({ name: 'instructions' });
+      if (!box.checked || next.getAttribute('aria-busy')) return;
+      var go = function () {
+        A.session.consented = 1;
+        A.go({ name: 'instructions' });
+      };
+      if (!A.needPid) return go();
+      // Shared link: get the next participant number now. If the endpoint can't
+      // be reached, the random assignment made on page load is kept.
+      next.setAttribute('aria-busy', 'true');
+      next.disabled = true;
+      next.textContent = C.text.remote.startWaiting;
+      D.requestPid().then(function (pid) {
+        A.needPid = false;
+        if (pid) applyServerPid(pid);
+        go();
+      });
     });
   }
 
@@ -260,11 +415,18 @@
     var participantSessions = all.filter(function (s) { return !s.is_review; });
     var nextUrl = null;
     if (A.session.pid) {
-      var p = new URLSearchParams(location.search);
+      // Only the pid (and reviewer mode) carries over; settings in the link never do.
+      var p = new URLSearchParams();
       p.set('pid', String(A.session.pid + 1));
+      if (A.review) p.set('review', '1');
       nextUrl = location.pathname + '?' + p.toString();
     }
-    app.innerHTML = page(t.title, t.html +
+    var fill = { contact: esc(contact()) };
+    app.innerHTML = page(t.title, U.fill(t.html, fill) +
+      '<label class="consent withdraw"><input type="checkbox" id="withdraw"' + (A.session.withdrawn ? ' checked' : '') + '> <span>' + esc(t.withdrawLabel) + '</span></label>' +
+      (A.review ? '' : '<p class="code-line">' + U.fill(t.codeLine, { code: '<b>' + esc(A.session.session_id) + '</b>' }) + '</p>') +
+      '<p class="sync-status" id="sync-status" role="status"></p>' +
+      U.fill(t.after || '', fill) +
       '<section class="researcher"' + (A.review ? '' : ' hidden') + ' id="researcher">' +
         '<h3>' + esc(t.researcherHeading) + '</h3>' +
         '<div class="researcher-body">' +
@@ -290,6 +452,37 @@
       var sessions = D.exportList(false);
       D.download('haitrust_data_' + D.fileStamp() + '.csv', D.toCSV(sessions.length ? sessions : [A.session]));
     });
+    document.getElementById('withdraw').addEventListener('change', function (e) {
+      A.session.withdrawn = e.target.checked ? 1 : 0;
+      save();
+      sync();
+    });
+    renderSyncStatus();
+  }
+
+  /* Status line on the last screen: saving / saved / could not reach the server. */
+  function renderSyncStatus() {
+    var el = document.getElementById('sync-status');
+    if (!el) return;
+    var t = C.text.remote, st = A.syncState, w = !!A.session.withdrawn;
+    var fill = { contact: esc(contact()), code: '<b>' + esc(A.session.session_id) + '</b>' };
+    var dl = function () { D.download('study-answers-' + A.session.session_id + '.json', JSON.stringify(A.session)); };
+    if (!D.endpoint() || A.review) { el.className = 'sync-status'; el.textContent = A.review ? '' : (w ? t.savedWithdrawn : t.savedLocal); return; }
+    if (st === 'confirmed') { el.className = 'sync-status is-ok'; el.textContent = w ? t.savedWithdrawn : t.saved; return; }
+    if (st === 'saving' || st === 'idle') { el.className = 'sync-status'; el.textContent = t.saving; return; }
+    if (st === 'sent') {
+      // Sent, but the reply could not be read: almost certainly saved; offer a copy just in case.
+      el.className = 'sync-status is-ok';
+      el.innerHTML = esc(w ? t.savedWithdrawn : t.saved) + (w ? '' : ' <button type="button" class="link-btn" id="sync-download">' + esc(t.downloadCopy) + '</button>');
+      if (!w) document.getElementById('sync-download').addEventListener('click', dl);
+      return;
+    }
+    el.className = 'sync-status is-bad';
+    el.innerHTML = U.fill(w ? t.failedWithdrawnHtml : t.failedHtml, fill) +
+      ' <button type="button" class="btn secondary" id="sync-retry">' + esc(t.retry) + '</button>' +
+      (w ? '' : ' <button type="button" class="btn secondary" id="sync-download">' + esc(t.download) + '</button>');
+    document.getElementById('sync-retry').addEventListener('click', sync);
+    if (!w) document.getElementById('sync-download').addEventListener('click', dl);
   }
 
   /* ------------------------------------------------------------------ */
@@ -300,8 +493,15 @@
   function startItem(index) {
     var id = A.seq[index], item = itemById(id);
     var practice = item.type === 'practice';
+    // Started before and not finished (reload or closed tab): count it, so it can be
+    // excluded, and keep the side the AI already recommended, so it never contradicts itself.
+    var prev = A.session.items[id];
+    var restarted = prev && !A.review ? (prev.restarted || 0) + (prev.done ? 0 : 1) : 0;
+    var keepSide = prev && !A.review && !prev.done ? (prev.fixed_rec_side || prev.rec_side || null) : null;
     A.item = item;
     A.rec = A.session.items[id] = {
+      restarted: restarted,
+      fixed_rec_side: keepSide,
       item_id: id, item_type: item.type, is_practice: practice ? 1 : 0, seq_index: index,
       position: practice ? 0 : index - A.nPractice() + 1,
       started_at: new Date().toISOString(), t0: Date.now(), times: {}, step: 'first',
@@ -501,7 +701,7 @@
   function onAsk() {
     var r = A.rec;
     if (!r || r.step !== 'ask') return;
-    r.rec_side = D.recSide(r.first_answer, A.item, A.opts().adviceDirection);
+    r.rec_side = r.fixed_rec_side || D.recSide(r.first_answer, A.item, A.opts().adviceDirection);
     r.rec_position = D.recPosition(r.rec_side, A.item);
     mark('ask');
     r.step = 'waiting';
@@ -694,7 +894,7 @@
       if (seen[it.id]) p.push(where + ': duplicate id.');
       seen[it.id] = true;
       if (['practice', 'emotional', 'analytical'].indexOf(it.type) < 0) p.push(where + ': type must be practice, emotional or analytical.');
-      ['title', 'scenario', 'question', 'askText'].forEach(function (f) { if (!it[f]) p.push(where + ': missing ' + f + '.'); });
+      ['title', 'scenario', 'question', 'askText', 'toolQuery'].forEach(function (f) { if (!it[f]) p.push(where + ': missing ' + f + '.'); });
       ['optionA', 'optionB'].forEach(function (f) {
         if (!it[f] || !it[f].label || !it[f].name || !it[f].text) p.push(where + ': ' + f + ' needs label, name and text.');
       });
@@ -708,10 +908,20 @@
     return p;
   }
 
-  function showConfigProblems(problems) {
+  function showConfigProblems(problems, heading) {
     var box = document.createElement('div');
     box.className = 'config-errors';
-    box.innerHTML = '<strong>Problems in config.js</strong><ul>' + problems.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    box.innerHTML = '<strong>' + esc(heading || 'Problems in config.js') + '</strong><ul>' + problems.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     document.body.insertBefore(box, document.body.firstChild);
+  }
+
+  /* Things that are fine for testing but must be set before real participants. */
+  function deployWarnings() {
+    var p = [], dc = C.dataCollection || {};
+    if (!D.endpoint()) p.push('No data endpoint in config.js → dataCollection.endpoint: answers stay in each participant’s own browser and never reach you. Fine for in-person sessions only.');
+    if (!contact() || /\[|\]/.test(contact())) p.push('Set your contact email in config.js → dataCollection.contact (participants see it on the first and last screen).');
+    if (/mockup|draft/i.test(C.version || '')) p.push('config.js → version still says "' + C.version + '".');
+    if (dc.endpoint && !/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/.+\/exec$/.test(D.endpoint())) p.push('The endpoint does not look like a Google Apps Script web-app address (https://script.google.com/macros/s/…/exec).');
+    return p;
   }
 })();

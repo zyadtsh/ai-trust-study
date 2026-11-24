@@ -10,7 +10,25 @@
    ========================================================================= */
 window.STUDY_CONFIG = {
   studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
-  version: "0.1-mockup",
+  version: "1.3-pilot",   // 1.1: answer scale 0–100, neutral Tool query (toolQuery default "terse"). 1.2: no run details in the Tool; Terminal, Notebook and Report looks. 1.3: Tool shows the chat question word for word (toolQuery default "same"); same Ask button, requests, caption and locked hint in every interface and look; App keeps every reply on screen. Change this whenever items, text or settings change during data collection
+
+  /* -----------------------------------------------------------------------
+     DATA COLLECTION (remote participants)
+     endpoint: the web-app address from apps-script/Code.gs (README → "Collecting
+       data remotely"). Each session is sent there and lands as one row in your
+       private Google Sheet. Leave it "" for in-person sessions only: answers
+       then stay in the browser that ran them.
+     assignPid: with one shared link (no ?pid=), ask the endpoint for the next
+       participant number, so Messaging/Tool and item orders stay balanced.
+     contact: shown to participants on the first and last screen.
+     minWidth: narrower screens (phones) are asked to switch to a computer.
+     ----------------------------------------------------------------------- */
+  dataCollection: {
+    endpoint: "",
+    assignPid: true,
+    contact: "[TEAM CONTACT EMAIL]",
+    minWidth: 900
+  },
 
   /* -----------------------------------------------------------------------
      INTERFACE (the manipulation)
@@ -21,8 +39,8 @@ window.STUDY_CONFIG = {
     label: "Interface (the manipulation)",
     what: "Each participant gets one. ?pid=N assigns from the balanced schedule (odd = Messaging, even = Tool); no pid = random; ?ui=chat or ?ui=tool forces it.",
     choices: {
-      chat: { label: "Messaging", note: "Humanlike frame: a conversation with a named contact, an avatar, message bubbles, timestamps and a typing indicator. The participant sends a pre-written message with “Ask”." },
-      tool: { label: "Tool", note: "Tool-like frame: no name, no avatar, no conversation. The inputs sit in cells, “Run” calls a function, and the identical text appears as a numbered output." }
+      chat: { label: "Messaging", note: "Humanlike frame: a conversation with a named contact, an avatar, message bubbles, timestamps and a typing indicator. The participant sends a pre-written question with “Ask”." },
+      tool: { label: "Tool", note: "Tool-like frame: no name, no avatar, no message bubbles. The question and the two options are shown as inputs, the same “Ask” button gets the reply, and the identical text appears as the output. The question (with Tool question wording = Same), the button, the follow-up and second-opinion requests and the locked hint use the same words as Messaging; only the frame and its own labels differ." }
     }
   },
 
@@ -36,13 +54,26 @@ window.STUDY_CONFIG = {
   designOptions: {
     toolLook: {
       label: "Tool version: look",
-      what: "Only affects the Tool interface. The Query always shows the same words as the chat message.",
+      what: "Only affects the Tool interface. Every look uses the same words as Messaging for the question (with Tool question wording = Same), the “Ask” button, the follow-up and second-opinion requests, the “Second opinion” caption and the locked hint (config.js → interfaceText.shared), and shows waiting without words, like the typing dots. Each look keeps its own frame labels (title “AI tool”, Query / Options / Output and the like).",
       "default": "app",
       choices: {
-        light:  { label: "Light",  note: "A form with inputs, a Run button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
-        medium: { label: "Medium", note: "A grid with column letters and row numbers, a formula bar and an output panel. Clearly a spreadsheet-style tool while staying uncluttered." },
-        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue (your pick). Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
-        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a product title bar, the two options as input cards, a “Run analysis” button, and inputs on the left and output on the right; each AI reply opens in its own tab (Result / Factor details / Alternate run) as a report: the identical AI text (“Generated summary”) followed by a “Run details” table with Type, Selected, Run and made-up system statistics (inputs parsed, factors evaluated, comparisons, tokens, compute). No timestamps, no confidence scores. The optional buttons use the same words as in Messaging. Footer shows a session ID. Strong tool cue without the numbers/analysis feel of a grid. Note the tag restates the pick in a structured field the chat doesn't have (the chat reply already names it in words)." }
+        light:  { label: "Light",  note: "A plain form: the query, the two options in a table, an “Ask” button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
+        medium: { label: "Medium", note: "A grid with column letters and row numbers (the question in row 2, the options below), a formula bar (=ASK(\"<the question>\", …)) and an output panel. No title bar. Clearly a spreadsheet-style tool while staying uncluttered." },
+        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue. Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
+        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a title bar, the query and the two options on the left with an “Ask” button, and the output on the right, where every AI reply stays on screen, numbered, under the request it answers. Only the AI text: no run details, IDs, timings or scores. Strong tool cue without the numbers/analysis feel of a grid." },
+        terminal: { label: "Terminal", note: "A command line: dark window, monospace text. The options are printed by a command, “Ask” runs ask \"<the question>\", and the reply is printed below it. The most machine-like look. Trade-offs: the AI text is in a monospace font, light on dark (every other look uses the shared font, dark on light), which reads more slowly and may itself change trust; it still has turn-taking (command, then reply), like the chat; and it can feel unfamiliar to people who never use a terminal, so familiarity becomes part of the difference." },
+        notebook: { label: "Notebook", note: "A data-science notebook: code cells (In [1]) with outputs (Out [1]). The options appear as a table produced by code, “Ask” runs an ask(\"<the question>\", options) cell, and the reply appears as the cell's output in the shared font. Strong “computed by code” cue, which may raise trust on analytical items for reasons other than the absence of humanlike cues; code can feel technical to some participants." },
+        report: { label: "Report", note: "A document on a page: the query and the two options with an “Ask” button; each AI reply is then added as a section headed by the question it answers. No conversation layout, only a document that grows. With Light, the least technical tool look, but the document style may lend extra authority." }
+      }
+    },
+
+    toolQuery: {
+      label: "Tool version: wording of the question",
+      what: "What the Tool shows as its query. Messaging always sends the item's askText.",
+      "default": "same",
+      choices: {
+        same:  { label: "Same as chat message", note: "The Tool shows the exact question the Messaging participant sends, e.g. “How should I bring up Sam's late-night calls?”, so the request, like the options and the reply, is word for word the same in both conditions; only the frame and its own labels differ. The Tool then contains a first-person question, a mild conversational cue, but the participant is the one asking (as in a search box), not the AI." },
+        terse: { label: "Neutral (tool-style)", note: "Shows the item's toolQuery instead, e.g. “Choose message (A/B): roommate's late-night calls”. Reads more like software, but the wording of the request then differs between conditions, which is a confound on top of the frame." }
       }
     },
 
@@ -71,18 +102,18 @@ window.STUDY_CONFIG = {
       what: "Decides which of the item's two scripted replies is shown.",
       "default": "opposite",
       choices: {
-        opposite: { label: "Opposite to first answer", note: "Recommends the side the participant did not lean toward (exactly 5, the middle → the item's default side). Every trial leaves room to move toward the advice, so weight of advice is measurable on every trial. People may notice the AI always disagrees, which can lower trust in both conditions." },
+        opposite: { label: "Opposite to first answer", note: "Recommends the side the participant did not lean toward (exactly 50, the middle → the item's default side). Every trial leaves room to move toward the advice, so weight of advice is measurable on every trial. People may notice the AI always disagrees, which can lower trust in both conditions." },
         fixed:    { label: "Fixed per item", note: "Each item always recommends its default side. More natural, but people who already agreed have nowhere to move, so those trials say little about trust, and you lose usable trials unevenly across items." }
       }
     },
 
     leanAsNumber: {
       label: "Say the lean as a number",
-      what: "Adds one sentence with the recommendation's position on the 0–10 slider.",
+      what: "Adds one sentence with the recommendation's position on the 0–100 slider.",
       "default": "off",
       choices: {
-        off: { label: "Off (words only)", note: "The lean is only given in words. Reads naturally in both frames. Weight of advice is computed from the configured position (2 or 8), which participants never see, so it is approximate." },
-        on:  { label: "On", note: "Appends e.g. “On a 0–10 scale from Reply A to Reply B, this comes out at about 8.” Makes weight of advice exact and comparable with classic advice-taking studies, but numbers read tool-like (which may shrink the difference between frames) and act as an anchor." }
+        off: { label: "Off (words only)", note: "The lean is only given in words. Reads naturally in both frames. Weight of advice is computed from the configured position (20 or 80), which participants never see, so it is approximate." },
+        on:  { label: "On", note: "Appends e.g. “On a 0–100 scale from Option A to Option B, this comes out at about 80.” Makes weight of advice exact and comparable with classic advice-taking studies, but numbers read tool-like (which may shrink the difference between frames) and act as an anchor." }
       }
     },
 
@@ -92,7 +123,7 @@ window.STUDY_CONFIG = {
       "default": "off",
       choices: {
         off: { label: "Off", note: "One reply per item. Everyone reads the same amount of AI text." },
-        on:  { label: "On", note: "A “Get an explanation” button appears with the reply and shows a scripted explanation (typing dots / Calculating…, same delay). Adds a second behavioural measure, but people who click read more AI text before their final answer, so exposure differs between people." }
+        on:  { label: "On", note: "A “Get an explanation” button appears with the reply and shows a scripted explanation (typing dots in Messaging, a progress indicator in Tool; same delay). Adds a second behavioural measure, but people who click read more AI text before their final answer, so exposure differs between people." }
       }
     },
 
@@ -113,8 +144,8 @@ window.STUDY_CONFIG = {
       what: "How each frame presents the source of the second AI reply.",
       "default": "same",
       choices: {
-        separate: { label: "A second AI", note: "Messaging: a second contact (“Assistant 2”) answers in the same thread. Tool: output labelled “model 2”. Matches the everyday meaning of a second opinion (from someone else) and avoids the first AI appearing to change its mind." },
-        same:     { label: "The same AI again", note: "Messaging: the same contact answers again. Tool: output labelled “run 2”. Like regenerating an answer. With “Neutral” or “Disagrees” content, the same contact appears to contradict itself, which reads more strongly in a conversation than in a second run of a function." }
+        separate: { label: "A second AI", note: "Messaging: a second contact (“Assistant 2”) answers in the same thread. Tool: output captioned “AI tool 2 · Second opinion”. Matches the everyday meaning of a second opinion (from someone else) and avoids the first AI appearing to change its mind." },
+        same:     { label: "The same AI again", note: "Messaging: the same contact answers again. Tool: output captioned “Second opinion”, as in Messaging. Like regenerating an answer. With “Neutral” or “Disagrees” content, the same contact appears to contradict itself, which reads more strongly in a conversation than in a second run of a function." }
       }
     },
 
@@ -124,7 +155,7 @@ window.STUDY_CONFIG = {
       "default": "panel",
       choices: {
         panel: { label: "Shared left panel", note: "Same place and look in both conditions, so click rates are directly comparable. Slightly less natural: the reply they trigger appears on the right." },
-        frame: { label: "Inside each interface", note: "Messaging: as quick-reply chips above the message box. Tool: as buttons on the output bar. More natural use of each interface, but the button's position and look now differ between conditions, which can change how often people click." }
+        frame: { label: "Inside each interface", note: "Messaging: as quick-reply chips above the message box. Tool: as buttons next to the output. More natural use of each interface, but the button's position and look now differ between conditions, which can change how often people click." }
       }
     },
 
@@ -161,7 +192,7 @@ window.STUDY_CONFIG = {
 
     delayMs: {
       label: "Reply delay (milliseconds)",
-      what: "Same in both interfaces: typing dots in Messaging, “Calculating…” in Tool. Applies to every AI reply.",
+      what: "Same in both interfaces: typing dots in Messaging, a wordless progress bar or spinner in Tool. Applies to every AI reply.",
       "default": 2500,
       type: "number", min: 0, max: 15000, step: 250,
       note: "Longer delays make the typing indicator or progress bar more noticeable; very short ones can feel instant or fake."
@@ -171,7 +202,7 @@ window.STUDY_CONFIG = {
   /* -----------------------------------------------------------------------
      SCREEN TEXT
      ----------------------------------------------------------------------- */
-  text: {   // all participant-facing wording below
+  text: {   // all participant-facing wording below; {contact} = dataCollection.contact
             // NOTE: the debrief (closing) describes the "Opposite to first answer"
             // rule. If you switch "Which side the AI recommends" to "Fixed per
             // item", rewrite that sentence.
@@ -179,10 +210,13 @@ window.STUDY_CONFIG = {
       title: "Welcome",
       html:
         '<p>This study is a class project for <b>CSCI 1952A: Human‑AI Interaction</b>.</p>' +
-        '<p><b>What you will do.</b> You will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions. It takes about 15 minutes.</p>' +
-        '<p><b>What we record.</b> Your answers, your ratings and how long each step takes. We do not collect your name, email address or any other information that identifies you. Results are used only for this class project and are reported only as group averages.</p>' +
-        '<p><b>Taking part is voluntary.</b> You can stop at any time without giving a reason; just tell the researcher. The study involves no risks beyond those of everyday life.</p>' +
-        '<p><b>Questions?</b> Ask the researcher running this session, before or after the study.</p>',
+        '<p><b>What you will do.</b> You will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions, and some details about the study are explained. It takes about 15–20 minutes. Please use a laptop or desktop computer and finish in one sitting.</p>' +
+        '<p><b>What we record.</b> Your answers, your ratings, how long each step takes, the size of your browser window and whether your device has a touch screen. We do not collect your name, email address or any other information that identifies you. {storage} Results are used only for this class project and are reported only as group averages.</p>' +
+        '<p><b>Taking part is voluntary.</b> You can stop at any time, without giving a reason, by closing this page (your browser may ask you to confirm). If you open the link again within 12 hours, you can continue where you left off. Answers from sessions that are never finished are not used. The study involves no risks beyond those of everyday life.</p>' +
+        '<p><b>Questions?</b> Contact us at {contact}.</p>',
+      // {storage} in the text above becomes one of these:
+      storageRemote: "Your answers are sent to a private spreadsheet that only the research team can open, and a copy is kept in this browser so you can continue if the page closes.",
+      storageLocal: "Your answers are saved on this computer for the research team.",
       consentLabel: "I have read the information above and agree to take part.",
       button: "Start"
     },
@@ -237,11 +271,38 @@ window.STUDY_CONFIG = {
       title: "Thank you",
       html:
         '<p>Thank you for taking part.</p>' +
-        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as an analysis tool. Apart from that, everyone saw exactly the same recommendations.</p>' +
-        '<p><b>What was set up in advance.</b> The AI’s replies were written ahead of time by the researchers; no AI generated them live. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference). In the tool version, the technical details shown under each result (such as factors evaluated, tokens and compute) were made up to make it look like analysis software.</p>' +
-        '<p>We could not tell you this at the start, because knowing it could have changed how you responded. If you would rather your answers not be used, tell the researcher now and they will be left out of the results.</p>' +
-        '<p>Please do not share details of the study with classmates who may still take part. Your answers have been saved. Please let the researcher know you have finished.</p>',
+        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as a software tool. The AI’s written replies were word for word the same in both versions.</p>' +
+        '<p><b>What was set up in advance.</b> There was no live AI in this study. All replies were written ahead of time by the researchers and were not based on any analysis of your situation: for every decision we wrote a convincing reply for each option, and both options were designed to be equally reasonable, so there was no right answer. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference).</p>' +
+        '<p>We could not tell you this at the start, because knowing it could have changed how you responded.</p>' +
+        '<p><b>Your choice.</b> If you would rather your answers not be used, tick the box below. If you change your mind later, email us your participation code (below) and we will delete your answers; without the code we cannot tell which answers are yours, because we do not record your name.</p>',
+      withdrawLabel: "Please do not use my answers.",
+      codeLine: "Your participation code: {code}",
+      after:
+        '<p><b>Questions or concerns?</b> Contact us at {contact}.</p>' +
+        '<p>Please do not share details of the study with anyone who may still take part.</p>',
       researcherHeading: "For the researcher"
+    },
+    /* Remote-session messages (see dataCollection above). */
+    remote: {
+      startWaiting: "One moment…",
+      gateTitle: "Please use a computer",
+      gateHtml: "<p>This study needs a laptop or desktop computer, with a browser window at least {width} pixels wide.</p><p>Please open this link on a computer. If you are already on one, make this window wider or full screen, or zoom out (Ctrl or Cmd and the minus key), and the study will start by itself.</p>",
+      resumeTitle: "Welcome back",
+      resumeHtml: "<p>You started this study earlier in this browser. Press Continue to carry on where you left off; the decision you were on will start again.</p><p>If you did not start this study yourself (for example, someone else used this computer), please do not continue, and contact us at {contact}.</p>",
+      resumeButton: "Continue",
+      doneTitle: "Already completed",
+      doneHtml: "<p>This study has already been completed in this browser. Each person can take part only once. Thank you!</p><p>If you have not taken part yourself (for example, someone else used this computer), please contact us at {contact}.</p>",
+      staleTitle: "Open in another tab",
+      staleHtml: "<p>This study is open in another tab or window. Please continue there and close this one.</p>",
+      saving: "Saving your answers…",
+      saved: "Your answers have been saved. You can close this page.",
+      savedWithdrawn: "Your choice has been saved: your answers will not be used. You can close this page.",
+      savedLocal: "Your answers have been saved.",
+      failedHtml: "<b>Your answers could not be sent yet.</b> Please check your internet connection and press Try again. If it keeps failing, press Download my answers and email the file to {contact} (we will save the file and delete your email).",
+      failedWithdrawnHtml: "<b>Your choice could not be sent yet.</b> Please check your internet connection and press Try again. If it keeps failing, email {contact} with your participation code {code} and we will delete your answers.",
+      retry: "Try again",
+      download: "Download my answers",
+      downloadCopy: "Download a copy"
     }
   },
 
@@ -251,14 +312,30 @@ window.STUDY_CONFIG = {
     middle: "No preference",
     right: "Definitely {B}",
     firstMarker: "your first answer",
-    max: 10            // scale runs 0..max in whole steps; the middle (max / 2) is "No preference"
+    max: 100           // scale runs 0..max in whole steps; the middle (max / 2) is "No preference"
   },
 
   /* Used only when "Say the lean as a number" is on. */
-  leanNumberTemplate: "On a 0–10 scale from {A} to {B}, this comes out at about {pos}.",
+  leanNumberTemplate: "On a 0–100 scale from {A} to {B}, this comes out at about {pos}.",
 
-  /* Interface chrome. The AI's words come from the items, never from here. */
+  /* Interface chrome. The AI's words come from the items, never from here.
+     "shared" holds the words that have the same job in both interfaces: the Ask
+     button, the locked hint, the follow-up and second-opinion requests, the
+     "Second opinion" caption and the screen-reader waiting label. With Tool
+     question wording = "Same" (default), the Tool also shows the chat's question
+     word for word. Each frame keeps only its own chrome: the chat's contact name,
+     status, bubbles, timestamps and "Today"; the Tool's title ("AI tool") and
+     structural labels (Query, Options, Output, and per look Field/Name/Description,
+     menus and cell references, the terminal prompt, notebook In/Out). */
   interfaceText: {
+    shared: {
+      askButton: "Ask",                   // the button that gets the AI's reply, in every interface and look
+      lockedHint: "Save your first answer before you ask.",
+      followUpPrompt: "Why {option}?",    // {option} = the option the main reply recommended
+      secondOpinionPrompt: "Can I get a second opinion?",
+      secondOpinionCaption: "Second opinion",
+      waitingLabel: "Waiting for the reply"  // screen readers only, while the reply is on its way (both interfaces)
+    },
     chat: {
       name: "Assistant",
       status: "AI assistant",
@@ -267,69 +344,28 @@ window.STUDY_CONFIG = {
       secondName: "Assistant 2",          // second-opinion contact when "A second AI" is chosen
       secondPersonaName: "Alex",          // ...and when the named persona is on
       today: "Today",
-      sendButton: "Ask",
-      composerPlaceholder: "Message",
-      lockedHint: "Save your first answer to send this message.",
-      followUpPrompt: "Why {option}?",    // {option} = the option the main reply recommended
-      secondOpinionPrompt: "Can I get a second opinion?",
-      secondOpinionCaption: "Second opinion"
+      composerPlaceholder: "Message"
     },
     tool: {
-      appTitle: "Decision workbook",
-      sheetName: "Sheet1",
-      menus: ["File", "Edit", "View", "Insert", "Format", "Data", "Help"],
-      runButton: "Run",
-      running: "Calculating…",
-      ready: "Ready",
-      fn: "RECOMMEND",
-      explainFn: "EXPLAIN",
-      secondSameNote: "run 2",           // second opinion, "The same AI again"
-      secondSeparateNote: "model 2",     // second opinion, "A second AI"
-      outputTitle: "Output",
-      outputEmpty: "No output yet.",
-      lockedHint: "Save your first answer to enable Run.",
-      secondOpinionCaption: "Second opinion",
-      fieldHeader: "Field",
-      resultHeader: "Result",
+      title: "AI tool",                   // title of every look except Medium, which has no title bar (the chat's status line reads "AI assistant")
+      secondName: "AI tool 2",            // second-opinion source when "A second AI" is chosen (chat: "Assistant" -> "Assistant 2")
+      queryLabel: "Query",
+      optionsLabel: "Options",
+      outputLabel: "Output",
+      fieldHeader: "Field",               // spreadsheet looks (Medium, Full)
       nameRow: "Name",
       textRowEmotional: "Message",
       textRowOther: "Description",
-      queryRow: "Query",
-      lightTitle: "Recommendation",
-      inputsLabel: "Inputs",
-      queryLabel: "Query",
-      app: {                              // the "App" look (designOptions → toolLook)
-        title: "Decision Analysis",
-        version: "v2.1",
-        runButton: "Run analysis",
-        processing: "Processing…",
-        inputTitle: "New analysis",
-        outputTitle: "Output",
-        outputEmpty: "No output yet. Run an analysis to see results.",
-        tabMain: "Result",                // tab names; one tab per AI reply
-        kindMain: "Analysis",
-        kindFollowUp: "Factor details",
-        kindSecond: "Alternate run",
-        recommendedLabel: "Selected",
-        rationaleLabel: "Generated summary",
-        detailsLabel: "Run details",
-        // Made-up system statistics shown under each reply. They describe the
-        // run, never the answer's quality (no confidence or accuracy scores),
-        // and are fixed per item, so every participant sees the same numbers.
-        stats: {
-          inputs: "Inputs parsed",
-          inputsValue: "{options} options · {fields} fields",
-          factors: "Factors evaluated",
-          comparisons: "Pairwise comparisons",
-          tokens: "Tokens (in / out)",
-          tokensValue: "{n} / {out}",
-          compute: "Compute",
-          computeUnit: "GPU-s"
-        },
-        typeLabel: "Type",
-        runLabel: "Run",
-        sessionLabel: "Session"
-      }
+      sheetName: "Sheet1",                // spreadsheet looks (Medium, Full)
+      menus: ["File", "Edit", "View", "Insert", "Format", "Data", "Help"],
+      fn: "ASK",                          // =ASK("<question>", B3:C8); later requests show ASK("<request>")
+      prompt: "$",                        // Terminal look: $ cat options.txt, then $ ask "<request>"
+      optionsCommand: "cat options.txt",
+      askCommand: "ask",
+      inLabel: "In",                      // Notebook look: options, then ask("<request>", options)
+      outLabel: "Out",
+      optionsVar: "options",
+      askFn: "ask"
     }
   },
 
@@ -339,7 +375,7 @@ window.STUDY_CONFIG = {
   perItemRatings: {
     points: 7,
     questions: [
-      { id: "item_trust", text: "How much do you trust the AI’s main recommendation on this decision?", low: "Not at all", high: "Completely" },
+      { id: "item_trust", text: "How much do you trust the AI’s recommendation on this decision?", low: "Not at all", high: "Completely" },
       { id: "item_ai_understood", text: "How well did the AI understand this situation?", low: "Not at all", high: "Very well" }
     ]
   },
@@ -349,23 +385,30 @@ window.STUDY_CONFIG = {
   endMeasures: {
     points: 7,
     blocks: [
-      /* Short set: 6 questions (was 11). Kept the two strongest trust items,
-         one competence and one warmth item, and the two most direct
-         humanlikeness pairs (the interface manipulation check). Cut:
-         "I could depend on…", "capable", "friendly", "Artificial–Lifelike",
-         "Fake–Natural". Earlier cuts and the full set are in git history. */
+      /* At least 3 items per scale, so each scale's reliability (Cronbach's
+         alpha) can be checked: trust 3, competence 3, warmth 3, humanlikeness 4
+         word pairs (the interface manipulation check). 13 questions, about a
+         minute. To shorten later, drop items only after the pilot shows which
+         ones hang together. */
       { id: "trust", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
         { id: "trust_1", text: "I trusted the AI’s recommendations." },
-        { id: "trust_2", text: "The AI’s recommendations were reliable." }
+        { id: "trust_2", text: "The AI’s recommendations were reliable." },
+        { id: "trust_3", text: "I could depend on the AI’s recommendations." }
       ] },
       { id: "competence", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "comp_1", text: "The AI was competent." }
+        { id: "comp_1", text: "The AI was competent." },
+        { id: "comp_2", text: "The AI was capable." },
+        { id: "comp_3", text: "The AI knew what it was talking about." }
       ] },
       { id: "warmth", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "warm_1", text: "The AI seemed warm." }
+        { id: "warm_1", text: "The AI seemed warm." },
+        { id: "warm_2", text: "The AI seemed friendly." },
+        { id: "warm_3", text: "The AI seemed good-natured." }
       ] },
       { id: "humanlike", kind: "pairs", prompt: "Please rate your impression of the AI on these scales.", items: [
         { id: "human_1", left: "Machinelike", right: "Humanlike" },
+        { id: "human_2", left: "Artificial", right: "Lifelike" },
+        { id: "human_3", left: "Fake", right: "Natural" },
         { id: "human_4", left: "Like using a tool", right: "Like talking to someone" }
       ] }
     ]
@@ -389,11 +432,14 @@ window.STUDY_CONFIG = {
        id, type ("practice" | "emotional" | "analytical"), pair (topic the
        emotional and analytical versions share; for your notes), title (short
        reminder used in the end ratings), scenario, question (slider
-       question), askText (the message the participant sends in Messaging),
+       question), askText (the participant's question: sent as the message in
+       Messaging and shown word for word as the Tool's query), toolQuery (neutral
+       line the Tool shows instead only if designOptions → toolQuery is "terse",
+       labelled "Neutral (tool-style)"),
        optionA / optionB { label, name, text },
        attributes: [{ label, a, b }]   (analytical items; [] otherwise)
-       defaultSide "A" | "B"  (fixed mode, or when the first answer is 5, the middle)
-       strength  (where the recommendation sits on the 0–10 scale: B -> strength, A -> 10 - strength) (8 everywhere)
+       defaultSide "A" | "B"  (fixed mode, or when the first answer is 50, the middle)
+       strength  (where the recommendation sits on the 0–100 scale: B -> strength, A -> 100 - strength) (80 everywhere)
        replies { A, B }          main AI reply arguing for each side
        followUp { A, B }         "Get an explanation" text (only if that option is on)
        secondOpinion { A, B, neutral }
@@ -416,6 +462,7 @@ window.STUDY_CONFIG = {
       "scenario": "You are meeting four classmates in a library study room on Thursday evening to review for a midterm, and everyone agreed to bring something small to share. You have time to grab one thing on the way. You want something easy to pass around, that will not make a mess on shared notes, and that most people will actually eat during a two-hour session. The store next to the library has both options in stock.",
       "question": "Which would you choose?",
       "askText": "Which snack should I bring to the study group?",
+      "toolQuery": "Choose snack (A/B): study group",
       "optionA": {
         "label": "Option A",
         "name": "Bag of pretzels",
@@ -428,7 +475,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "A",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A suits this session better: a bag of pretzels can sit open in the middle of the table, people can grab a handful without stopping, and there is nothing to peel or throw away near the notes. Option A is the better pick.",
         "B": "Option B suits this session better: clementines come in single servings, so each person can take one without passing a bag around, they leave no salty crumbs on notes or laptops, and nearly everyone likes them. Option B is the better pick."
@@ -454,6 +501,7 @@ window.STUDY_CONFIG = {
       "scenario": "You share a two-bedroom apartment with your roommate Sam, and you get along well. For a few weeks, Sam has taken long video calls in the living room until about 1 a.m. on weeknights, and the sound carries into your room. You have 8 a.m. classes three days a week and are starting to feel worn out. You have not said anything yet. You are deciding what to text Sam.",
       "question": "Which message would you send?",
       "askText": "How should I bring up Sam's late-night calls?",
+      "toolQuery": "Choose message (A/B): roommate's late-night calls",
       "optionA": {
         "label": "Option A",
         "name": "Ask directly",
@@ -466,7 +514,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "B",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A is the clearer message. It names the specific problem, the late calls, and offers a simple fix: taking them in Sam's room after 11 on weeknights. A concrete request is easy to agree to and hard to misread, and the reason given, 8 a.m. classes, makes it practical rather than personal. Option A is the better message to send.",
         "B": "Option B is the gentler message. Framing quiet hours as a rule for both roommates avoids singling Sam out, which keeps a good relationship from feeling like a complaint. It still mentions the 8 a.m. classes, so the reason is clear, and it invites Sam to help shape the solution rather than simply comply. Option B is the better message to send."
@@ -492,6 +540,7 @@ window.STUDY_CONFIG = {
       "scenario": "You and your roommate are setting up internet for your apartment and will split the bill evenly. Your lease runs 10 months, from August to May. You both stream video and sometimes take classes online, and your roommate games online a few evenings a week. You have narrowed it to two plans from the same provider. Either plan would handle video calls and streaming without trouble.",
       "question": "Which plan would you choose?",
       "askText": "Which internet plan should we sign up for?",
+      "toolQuery": "Choose plan (A/B): apartment internet",
       "optionA": {
         "label": "Option A",
         "name": "Flex 500",
@@ -530,7 +579,7 @@ window.STUDY_CONFIG = {
         }
       ],
       "defaultSide": "A",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A, the Flex 500 plan, gives more for a small difference. It costs $75 more over the 10-month lease, or $37.50 per roommate, under $4 a month each. For that, it delivers two and a half times the speed, which helps when one roommate is gaming while the other is on a video call. With no contract, it also ends cleanly in May. Option A is the better plan.",
         "B": "Option B, the Saver 200 plan, covers the apartment's needs for less. At 200 Mbps it handles streaming, online classes, and gaming at the same time, and it costs $75 less over the lease, even after the $100 cancellation fee. Split evenly, that is $37.50 back for each roommate. Speed beyond what is used adds cost without benefit. Option B is the better plan."
@@ -556,6 +605,7 @@ window.STUDY_CONFIG = {
       "scenario": "Your close friend Riley forgot your birthday yesterday. You had mentioned it a few times the week before, and most of your other friends sent messages or stopped by. This morning Riley texted: \"oh no, I totally forgot your birthday yesterday!! happy belated, I feel terrible.\" You were a little hurt, but you know Riley has had a stressful week of exams. You are deciding how to reply.",
       "question": "Which reply would you send?",
       "askText": "How should I reply to Riley forgetting my birthday?",
+      "toolQuery": "Choose reply (A/B): friend forgot birthday",
       "optionA": {
         "label": "Option A",
         "name": "Say it stung",
@@ -568,7 +618,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "A",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A is the more honest reply. It thanks Riley, says briefly that the forgotten birthday hurt, and still shows understanding about the stressful week. Close friends usually handle a small, kind admission well, and saying it now keeps the hurt from quietly building up. The dinner invitation ends things warmly. Option A is the better reply to send.",
         "B": "Option B is the more generous reply. Riley has already apologized and said they feel terrible, so adding that it stung mostly increases the guilt without changing anything. Mentioning the exams shows understanding, and the dinner invitation makes clear the friendship is fine. A forgotten birthday is a small slip. Option B is the better reply to send."
@@ -594,6 +644,7 @@ window.STUDY_CONFIG = {
       "scenario": "You and three friends are planning a weekend trip to a city about 150 miles away, leaving Friday afternoon and returning Sunday evening. The group needs to decide how to get there, and everyone will split the cost evenly. Two of you have driver's licenses. You would like to keep costs low, but you also have a paper due Monday and were hoping to work on it during the trip.",
       "question": "Which option would you choose?",
       "askText": "Should we rent a car or take the train for our trip?",
+      "toolQuery": "Choose option (A/B): travel to weekend trip",
       "optionA": {
         "label": "Option A",
         "name": "Rental car",
@@ -627,7 +678,7 @@ window.STUDY_CONFIG = {
         }
       ],
       "defaultSide": "B",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A, the rental car, is cheaper and faster. It costs $14 less per person and saves 45 minutes each way, an hour and a half over the weekend. A car also makes getting around the city easier. With two drivers taking turns, each drives only part of the way, and the passengers can still work on the paper. Option A is the better choice.",
         "B": "Option B, the train, turns travel time into work time. With no driving, there are about 6 hours of round-trip travel for the paper due Monday, which takes pressure off the weekend itself. The extra $14 per person buys that time plus a break from driving 300 miles. Transit covers most trips in the city. Option B is the better choice."
@@ -653,6 +704,7 @@ window.STUDY_CONFIG = {
       "scenario": "You work part-time at a campus café, and you like your manager, Dana. On Thursday, Dana texts asking whether you can cover an extra shift this Saturday because someone called in sick. You have already covered two extra shifts this month, and Saturday is the one day you had kept free to rest. Nothing is planned, but you were counting on the break. You are deciding how to reply.",
       "question": "Which reply would you send?",
       "askText": "How should I answer Dana about covering Saturday?",
+      "toolQuery": "Choose reply (A/B): request to cover Saturday shift",
       "optionA": {
         "label": "Option A",
         "name": "Decline politely",
@@ -665,7 +717,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "B",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A protects the day off. After two extra shifts this month, Saturday is the only planned rest, and giving it up risks burning out halfway through the semester. The reply is polite, gives a brief and honest reason, and wishes Dana luck finding someone. Managers expect staff to decline extra shifts sometimes. Option A is the better reply to send.",
         "B": "Option B helps Dana while setting a clear limit. Covering a shift when someone is sick builds goodwill with a manager you like, which can matter later for scheduling or references. Saying the next few Saturdays stay free keeps it from becoming a habit and makes the boundary explicit. Option B is the better reply to send."
@@ -691,6 +743,7 @@ window.STUDY_CONFIG = {
       "scenario": "You work part-time at a campus café and are choosing your shift schedule for the semester. Both options are 12 hours a week, and the café is a 20-minute bus ride from your apartment each way. Your classes run on weekdays until mid-afternoon. You want to earn as much as you can while keeping time for coursework and friends. Your manager has offered two schedules, and you need to pick one by Friday.",
       "question": "Which schedule would you choose?",
       "askText": "Which of these two work schedules should I pick?",
+      "toolQuery": "Choose schedule (A/B): part-time job",
       "optionA": {
         "label": "Option A",
         "name": "Weekday evenings",
@@ -729,7 +782,7 @@ window.STUDY_CONFIG = {
         }
       ],
       "defaultSide": "A",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A, the weekday evenings, pays more and keeps weekends free. At $17 an hour it brings in $12 more a week, about $180 over a 15-week semester. Saturdays and Sundays stay open for longer study sessions, errands, and time with friends. The extra 40 minutes of commuting each week is a small cost against both. Option A is the better schedule.",
         "B": "Option B, the weekend days, keeps weekday evenings free for coursework. Classes run until mid-afternoon, so evening shifts would cut into the main time for homework three nights a week. Two trips instead of three also save 40 minutes of commuting each week. The $12 a week less in pay is about $1 an hour. Option B is the better schedule."
@@ -755,6 +808,7 @@ window.STUDY_CONFIG = {
       "scenario": "You are in a four-person group for a class presentation due in five days. Last week everyone agreed on a plan, and each person took a set of slides. Three of you have finished drafts, but Jamie has not added anything or replied in the group chat for four days. You do not know Jamie well. You are usually the one who keeps the group organized, and you are deciding what message to send.",
       "question": "Which message would you send?",
       "askText": "What should I say about Jamie not doing their slides?",
+      "toolQuery": "Choose message (A/B): group member's missing slides",
       "optionA": {
         "label": "Option A",
         "name": "Message Jamie privately",
@@ -767,7 +821,7 @@ window.STUDY_CONFIG = {
       },
       "attributes": [],
       "defaultSide": "A",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A is more likely to get a real answer. A private message reaches Jamie directly, avoids embarrassing them in front of the group, and leaves room to explain if something is going on. The offer to help makes it easy to reply honestly instead of staying quiet. Option A is the better message to send.",
         "B": "Option B sets a clear deadline without singling anyone out. Asking everyone for slides by Thursday applies the same expectation to all four members, so Jamie is reminded without being called out. It also gives the group a shared date to plan practice around, which keeps the project on track. Option B is the better message to send."
@@ -793,6 +847,7 @@ window.STUDY_CONFIG = {
       "scenario": "Your four-person group must analyze a dataset for a class project due in three weeks. Each person can put in about 5 hours a week, so the group has about 60 hours in total. You have narrowed the choice to two datasets on student housing. The grade depends mostly on the quality of the analysis and the presentation, and nobody in the group has much experience cleaning data.",
       "question": "Which dataset would you choose?",
       "askText": "Which of these two datasets should our group use?",
+      "toolQuery": "Choose dataset (A/B): group project",
       "optionA": {
         "label": "Option A",
         "name": "Campus survey",
@@ -831,7 +886,7 @@ window.STUDY_CONFIG = {
         }
       ],
       "defaultSide": "B",
-      "strength": 8,
+      "strength": 80,
       "replies": {
         "A": "Option A, the campus survey, leaves the most time for the graded work. With only about 3 hours of cleaning, the group keeps 57 of its 60 hours for analysis and the presentation, 12 more than Option B. That margin matters in a group without data-cleaning experience. Twelve variables are enough for a focused, well-explained analysis. Option A is the better dataset.",
         "B": "Option B, the city records, gives the analysis more to work with. Forty variables and 50,000 rows allow comparisons a 2,000-row survey cannot support, and a dataset past groups rarely used helps the project stand out. Even after 15 hours of cleaning, 45 hours remain, about 11 per person, which is enough for careful work. Option B is the better dataset."
