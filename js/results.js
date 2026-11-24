@@ -1,6 +1,7 @@
 /* Results dashboard for the experiment leaders (results.html).
-   Reads the sessions stored in this browser, or decisions CSV files exported
-   from one or more lab laptops, and shows the study's main comparisons.
+   Reads the sessions stored in this browser, the Google Sheet export (remote
+   data), downloaded .json answer files, or decisions CSV files from lab
+   laptops, and shows the study's main comparisons.
    Everything is computed per participant first (their mean over the decisions
    of one type), then averaged across participants, so each person counts once
    per cell. Error bars are 95% confidence intervals of those participant means.
@@ -19,7 +20,8 @@
     { key: 'emotional', label: 'Emotional' },
     { key: 'analytical', label: 'Analytical' }
   ];
-  var SECOND = function () { return D.secondOpinionOn(); };   // second-opinion button switched on in config.js
+  var dataHasSecond = false;   // set from the loaded rows in R.render
+  var SECOND = function () { return D.secondOpinionOn() || dataHasSecond; };   // second-opinion button on in config.js or in the data
   var trustQ = (C.perItemRatings.questions[0] || {}).id;          // per-decision trust question
   var scenQ = (C.scenarioRatings.questions[0] || {}).id;          // end-of-study decision-type rating
 
@@ -90,6 +92,19 @@
     });
   };
 
+  /* Decision rows from any supported file: the Google Sheet export (one
+     session per row, in a "json" column), a downloaded answers .json, or a
+     data CSV exported from the study. */
+  R.rowsFromText = function (text) {
+    var sessions = D.sessionsFromText(text, R.parseCSV);
+    if (sessions.length) {
+      var rows = [];
+      sessions.forEach(function (s) { rows = rows.concat(D.rows(s).map(clean)); });
+      return rows;
+    }
+    return R.parseCSV(text);
+  };
+
   /* ------------------------------------------------------------------ */
   /* From decision rows to participants                                  */
   /* ------------------------------------------------------------------ */
@@ -108,7 +123,7 @@
       var start = Date.parse(f.started_at), end = f.finished_at ? Date.parse(f.finished_at) : NaN;
       var p = {
         session_id: id, pid: f.participant_id, iface: f.interface,
-        completed: f.session_completed === 1, review: f.is_reviewer_session === 1,
+        completed: f.session_completed === 1, review: f.is_reviewer_session === 1, withdrawn: f.withdrawn === 1,
         minutes: isNaN(end) ? null : (end - start) / 60000,
         started_at: f.started_at, end: {}, types: {}, rows: rs
       };
@@ -130,7 +145,7 @@
     });
 
     var included = all.filter(function (p) {
-      return (opts.includeReview || !p.review) && (opts.includeIncomplete || p.completed) &&
+      return !p.withdrawn && (opts.includeReview || !p.review) && (opts.includeIncomplete || p.completed) &&
         (p.iface === 'messaging' || p.iface === 'tool') && p.decisions > 0;
     });
     var pidCount = {};
@@ -267,13 +282,14 @@
   /* Page                                                                */
   /* ------------------------------------------------------------------ */
   R.render = function (rows, opts) {
+    dataHasSecond = rows.some(function (r) { return r.asked_second_opinion != null; });
     var b = R.build(rows, opts), people = b.people;
     var byIf = function (k) { return people.filter(function (p) { return p.iface === k; }); };
     var excluded = b.all.length - people.length;
     var h = '';
 
     if (!b.all.length) {
-      return h + '<div class="notice">No study data here yet. Sessions appear once someone takes the study in this browser, or load decisions CSV files exported from the lab laptops.</div>';
+      return h + '<div class="notice">No study data here yet. For remote data, download the “sessions” tab of your Google Sheet as CSV and load it with Load data files. Sessions taken in this browser also appear here.</div>';
     }
 
     /* Sample */
@@ -359,7 +375,7 @@
       ['Chart dots', 'First each participant\u2019s mean over their decisions of one type (4 emotional, 4 analytical), then the mean of those across the participants in each interface. Each person counts once per dot.', ''],
       ['Chart bars (95% CI)', 'Mean \u00B1 t \u00D7 SD \u00F7 \u221An, over the participant means in that dot. Bars that barely overlap suggest a real difference; the mixed model gives the actual test.', ''],
       ['Item flags', 'Not a toss-up: over half of first answers are 0\u20131 or ' + (max - 1) + '\u2013' + max + '. Feels like the other type: mean rating above 4 for an emotional item, or below 4 for an analytical one. Nobody moves: mean weight of advice under 0.05.', ''],
-      ['Participant flags', 'Very fast: under 6 minutes from start to debrief. Repeated pid: the same pid in more than one participant session.', '']
+      ['Participant flags', 'Withdrew: ticked “Please do not use my answers” on the debrief; always left out. Very fast: under 6 minutes from start to debrief. Repeated pid: the same pid in more than one participant session.', '']
     ];
     rows = rows.filter(Boolean);
     var exLine = ex
@@ -506,6 +522,7 @@
       '<th class="n">Weight of advice: emotional</th><th class="n">Weight of advice: analytical</th><th class="n">Humanlikeness</th><th>In charts</th><th>Flags</th></tr>';
     list.forEach(function (p) {
       var flags = [];
+      if (p.withdrawn) flags.push('withdrew: never included');
       if (p.review) flags.push('reviewer session');
       if (!p.completed) flags.push('did not finish');
       if (p.minutes != null && p.minutes < 6) flags.push('very fast (under 6 min)');
@@ -660,7 +677,7 @@
   /* ------------------------------------------------------------------ */
   R.start = function () {
     var root = document.getElementById('root'), tip = document.getElementById('tip');
-    var state = { source: 'browser', files: [], fileRows: [], includeReview: false, includeIncomplete: false, example: 'supported', open: {} };
+    var state = { source: 'browser', files: [], fileRows: [], fileSessions: [], includeReview: false, includeIncomplete: false, example: 'supported', open: {} };
 
     function draw() {
       var rows = state.source === 'browser' ? R.rowsFromBrowser() : state.source === 'example' ? R.exampleRows(state.example) : state.fileRows;
@@ -668,13 +685,13 @@
       var srcText = state.source === 'browser'
         ? 'Data: sessions stored in this browser (' + location.host + (location.protocol === 'file:' ? 'local file' : '') + ')'
         : state.source === 'example' ? 'Data: made-up example (' + ex.label + ')'
-        : 'Data: ' + state.files.length + ' CSV file(s): ' + state.files.join(', ');
+        : 'Data: ' + state.files.length + ' file(s): ' + state.files.join(', ');
       root.innerHTML =
         '<h1>Study results</h1>' +
         '<p class="lead">For the experiment leaders only. Descriptive summaries to follow data collection and spot problems early; the statistical tests come from the mixed model in the analysis plan. <a href="#how">How the numbers are calculated</a></p>' +
         '<div class="bar">' +
           '<button type="button" data-src="browser" class="' + (state.source === 'browser' ? 'on' : '') + '">This browser</button>' +
-          '<label class="btn">Load decisions CSV files…<input type="file" id="csv" accept=".csv,text/csv" multiple></label>' +
+          '<label class="btn">Load data files…<input type="file" id="csv" accept=".csv,text/csv,.json,application/json" multiple></label>' +
           '<button type="button" data-src="example" class="' + (state.source === 'example' ? 'on' : '') + '">Example data</button>' +
           (state.source === 'example' ? '<select id="example" aria-label="Example scenario">' + Object.keys(R.EXAMPLES).map(function (k) {
             return '<option value="' + k + '"' + (k === state.example ? ' selected' : '') + '>' + esc(R.EXAMPLES[k].label) + '</option>';
@@ -682,6 +699,7 @@
           '<label class="chk"><input type="checkbox" id="inc-review"' + (state.includeReview ? ' checked' : '') + '> include reviewer sessions</label>' +
           '<label class="chk"><input type="checkbox" id="inc-incomplete"' + (state.includeIncomplete ? ' checked' : '') + '> include incomplete sessions</label>' +
           '<button type="button" id="codebook">Download codebook</button>' +
+          (state.source !== 'example' ? '<button type="button" id="datacsv">Download data CSV</button>' : '') +
           '<span class="src">' + esc(srcText) + '</span>' +
         '</div>' +
         (state.error ? '<div class="notice">' + esc(state.error) + '</div>' : '') +
@@ -693,19 +711,42 @@
       var sel = root.querySelector('#example');
       if (sel && sel.addEventListener) sel.addEventListener('change', function (e) { state.example = e.target.value; draw(); });
       root.querySelector('#codebook').addEventListener('click', function () { D.download('haitrust_codebook.csv', D.codebookCSV()); });
+      var dataBtn = root.querySelector('#datacsv');
+      if (dataBtn) dataBtn.addEventListener('click', function () {
+        // One row per participant per decision, ready for analysis. Withdrawn and unfinished
+        // sessions are left out (the consent says unfinished sessions are not used).
+        var list = state.source === 'browser' ? D.dedupeSessions(D.exportList(state.includeReview)) : state.fileSessions;
+        list = list.filter(function (x) { return !x.withdrawn && x.completed; });
+        if (!list.length) { state.error = state.source === 'browser' ? 'No finished sessions in this browser to export.' : 'No finished sessions to export. Only the Google Sheet export and answers .json files hold whole sessions; a data CSV already is the export.'; draw(); return; }
+        state.error = state.source === 'files' && state.rowOnlyFiles && state.rowOnlyFiles.length
+          ? 'The download has the sessions from the Google Sheet export and .json files only. These data CSV files are not included (they already are exports): ' + state.rowOnlyFiles.join(', ') + '.' : null;
+        D.download('haitrust_data_' + D.fileStamp() + '.csv', D.toCSV(list));
+        if (state.error) draw();
+      });
       root.querySelector('#inc-review').addEventListener('change', function (e) { state.includeReview = e.target.checked; draw(); });
       root.querySelector('#inc-incomplete').addEventListener('change', function (e) { state.includeIncomplete = e.target.checked; draw(); });
       root.querySelector('#csv').addEventListener('change', function (e) {
         var files = Array.from(e.target.files || []);
         if (!files.length) return;
-        Promise.all(files.map(function (f) { return f.text().then(function (t) { return { name: f.name, rows: R.parseCSV(t) }; }); })).then(function (res) {
+        Promise.all(files.map(function (f) { return f.text().then(function (t) {
+          var sessions = D.sessionsFromText(t, R.parseCSV);
+          return { name: f.name, sessions: sessions, rows: sessions.length ? [] : R.parseCSV(t) };
+        }); })).then(function (res) {
+          // Sheet exports and emailed .json files hold whole sessions: merge copies of the same
+          // session (keep the most complete one) before building rows. Data CSVs are rows already.
+          var merged = D.dedupeSessions([].concat.apply([], res.map(function (r) { return r.sessions; })));
+          var sessionRows = [];
+          merged.forEach(function (x) { sessionRows = sessionRows.concat(D.rows(x).map(clean)); });
+          res.forEach(function (r) { if (r.sessions.length) r.rows = [{ item_id: '', session_id: '' }]; });   // mark as usable
           var good = res.filter(function (r) { return r.rows.length && 'item_id' in r.rows.at(0) && 'session_id' in r.rows.at(0); });
           var bad = res.filter(function (r) { return good.indexOf(r) < 0; });
-          state.error = bad.length ? 'Skipped ' + bad.map(function (r) { return r.name; }).join(', ') + ': not a decisions file. Load the "decisions" CSV, not the participants summary or codebook.' : null;
+          state.error = bad.length ? 'Skipped ' + bad.map(function (r) { return r.name; }).join(', ') + ': not a study data file. Load the Google Sheet export (File → Download → CSV of the "sessions" tab), a downloaded answers .json file, or a data CSV from this study (not the codebook).' : null;
           if (good.length) {
             state.source = 'files';
             state.files = good.map(function (r) { return r.name; });
-            state.fileRows = [].concat.apply([], good.map(function (r) { return r.rows; }));
+            state.fileSessions = merged;
+            state.rowOnlyFiles = good.filter(function (r) { return !r.sessions.length; }).map(function (r) { return r.name; });
+            state.fileRows = sessionRows.concat([].concat.apply([], good.filter(function (r) { return !r.sessions.length; }).map(function (r) { return r.rows; })));
           }
           draw();
         });

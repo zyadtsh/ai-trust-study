@@ -490,3 +490,14 @@ body.drawer-open .page { margin-right: calc(min(420px, 100vw) + 20px); }
 .rb-inline { font-size: 13px; color: var(--muted); display: flex; gap: 5px; align-items: center; }
 .dr-danger { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
 .dr-actions a.btn { text-decoration: none; }
+
+/* Last screen: withdraw box and "saved / could not send" status */
+.consent.withdraw { margin-top: 4px; }
+.sync-status { margin: 16px 0 4px; font-weight: 600; color: var(--muted); }
+.sync-status:empty { display: none; }
+.sync-status.is-ok { color: #1f6f43; }
+.sync-status.is-bad { color: var(--danger); font-weight: 500; line-height: 1.6; }
+.sync-status .btn { margin-top: 8px; }
+.code-line { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+.code-line b { font-family: var(--mono); color: var(--text); letter-spacing: .03em; }
+.link-btn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; font-weight: 500; }

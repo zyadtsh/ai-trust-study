@@ -10,7 +10,25 @@
    ========================================================================= */
 window.STUDY_CONFIG = {
   studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
-  version: "0.1-mockup",
+  version: "1.0-pilot",   // change this whenever items, text or settings change during data collection
+
+  /* -----------------------------------------------------------------------
+     DATA COLLECTION (remote participants)
+     endpoint: the web-app address from apps-script/Code.gs (README → "Collecting
+       data remotely"). Each session is sent there and lands as one row in your
+       private Google Sheet. Leave it "" for in-person sessions only: answers
+       then stay in the browser that ran them.
+     assignPid: with one shared link (no ?pid=), ask the endpoint for the next
+       participant number, so Messaging/Tool and item orders stay balanced.
+     contact: shown to participants on the first and last screen.
+     minWidth: narrower screens (phones) are asked to switch to a computer.
+     ----------------------------------------------------------------------- */
+  dataCollection: {
+    endpoint: "",
+    assignPid: true,
+    contact: "[TEAM CONTACT EMAIL]",
+    minWidth: 900
+  },
 
   /* -----------------------------------------------------------------------
      INTERFACE (the manipulation)
@@ -171,18 +189,21 @@ window.STUDY_CONFIG = {
   /* -----------------------------------------------------------------------
      SCREEN TEXT
      ----------------------------------------------------------------------- */
-  text: {   // all participant-facing wording below
+  text: {   // all participant-facing wording below; {contact} = dataCollection.contact
             // NOTE: the debrief (closing) describes the "Opposite to first answer"
-            // rule. If you switch "Which side the AI recommends" to "Fixed per
-            // item", rewrite that sentence.
+            // rule and the Tool's made-up run details. If you change either
+            // setting, rewrite those sentences.
     intro: {
       title: "Welcome",
       html:
         '<p>This study is a class project for <b>CSCI 1952A: Human‑AI Interaction</b>.</p>' +
-        '<p><b>What you will do.</b> You will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions. It takes about 15 minutes.</p>' +
-        '<p><b>What we record.</b> Your answers, your ratings and how long each step takes. We do not collect your name, email address or any other information that identifies you. Results are used only for this class project and are reported only as group averages.</p>' +
-        '<p><b>Taking part is voluntary.</b> You can stop at any time without giving a reason; just tell the researcher. The study involves no risks beyond those of everyday life.</p>' +
-        '<p><b>Questions?</b> Ask the researcher running this session, before or after the study.</p>',
+        '<p><b>What you will do.</b> You will make a few short, everyday decisions. For each one you give your own answer, see a recommendation from an AI, and then give your final answer. At the end there are a few short questions, and some details about the study are explained. It takes about 15–20 minutes. Please use a laptop or desktop computer and finish in one sitting.</p>' +
+        '<p><b>What we record.</b> Your answers, your ratings, how long each step takes, the size of your browser window and whether your device has a touch screen. We do not collect your name, email address or any other information that identifies you. {storage} Results are used only for this class project and are reported only as group averages.</p>' +
+        '<p><b>Taking part is voluntary.</b> You can stop at any time, without giving a reason, by closing this page (your browser may ask you to confirm). If you open the link again within 12 hours, you can continue where you left off. Answers from sessions that are never finished are not used. The study involves no risks beyond those of everyday life.</p>' +
+        '<p><b>Questions?</b> Contact us at {contact}.</p>',
+      // {storage} in the text above becomes one of these:
+      storageRemote: "Your answers are sent to a private spreadsheet that only the research team can open, and a copy is kept in this browser so you can continue if the page closes.",
+      storageLocal: "Your answers are saved on this computer for the research team.",
       consentLabel: "I have read the information above and agree to take part.",
       button: "Start"
     },
@@ -237,11 +258,38 @@ window.STUDY_CONFIG = {
       title: "Thank you",
       html:
         '<p>Thank you for taking part.</p>' +
-        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as an analysis tool. Apart from that, everyone saw exactly the same recommendations.</p>' +
-        '<p><b>What was set up in advance.</b> The AI’s replies were written ahead of time by the researchers; no AI generated them live. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference). In the tool version, the technical details shown under each result (such as factors evaluated, tokens and compute) were made up to make it look like analysis software.</p>' +
-        '<p>We could not tell you this at the start, because knowing it could have changed how you responded. If you would rather your answers not be used, tell the researcher now and they will be left out of the results.</p>' +
-        '<p>Please do not share details of the study with classmates who may still take part. Your answers have been saved. Please let the researcher know you have finished.</p>',
+        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as an analysis tool. The AI’s written replies were word for word the same in both versions.</p>' +
+        '<p><b>What was set up in advance.</b> There was no live AI in this study. All replies were written ahead of time by the researchers and were not based on any analysis of your situation: for every decision we wrote a convincing reply for each option, and both options were designed to be equally reasonable, so there was no right answer. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference). In the tool version, the technical details shown under each result (such as factors evaluated, tokens and compute) were made up to make it look like analysis software.</p>' +
+        '<p>We could not tell you this at the start, because knowing it could have changed how you responded.</p>' +
+        '<p><b>Your choice.</b> If you would rather your answers not be used, tick the box below. If you change your mind later, email us your participation code (below) and we will delete your answers; without the code we cannot tell which answers are yours, because we do not record your name.</p>',
+      withdrawLabel: "Please do not use my answers.",
+      codeLine: "Your participation code: {code}",
+      after:
+        '<p><b>Questions or concerns?</b> Contact us at {contact}.</p>' +
+        '<p>Please do not share details of the study with anyone who may still take part.</p>',
       researcherHeading: "For the researcher"
+    },
+    /* Remote-session messages (see dataCollection above). */
+    remote: {
+      startWaiting: "One moment…",
+      gateTitle: "Please use a computer",
+      gateHtml: "<p>This study needs a laptop or desktop computer, with a browser window at least {width} pixels wide.</p><p>Please open this link on a computer. If you are already on one, make this window wider or full screen, or zoom out (Ctrl or Cmd and the minus key), and the study will start by itself.</p>",
+      resumeTitle: "Welcome back",
+      resumeHtml: "<p>You started this study earlier in this browser. Press Continue to carry on where you left off; the decision you were on will start again.</p><p>If you did not start this study yourself (for example, someone else used this computer), please do not continue, and contact us at {contact}.</p>",
+      resumeButton: "Continue",
+      doneTitle: "Already completed",
+      doneHtml: "<p>This study has already been completed in this browser. Each person can take part only once. Thank you!</p><p>If you have not taken part yourself (for example, someone else used this computer), please contact us at {contact}.</p>",
+      staleTitle: "Open in another tab",
+      staleHtml: "<p>This study is open in another tab or window. Please continue there and close this one.</p>",
+      saving: "Saving your answers…",
+      saved: "Your answers have been saved. You can close this page.",
+      savedWithdrawn: "Your choice has been saved: your answers will not be used. You can close this page.",
+      savedLocal: "Your answers have been saved.",
+      failedHtml: "<b>Your answers could not be sent yet.</b> Please check your internet connection and press Try again. If it keeps failing, press Download my answers and email the file to {contact} (we will save the file and delete your email).",
+      failedWithdrawnHtml: "<b>Your choice could not be sent yet.</b> Please check your internet connection and press Try again. If it keeps failing, email {contact} with your participation code {code} and we will delete your answers.",
+      retry: "Try again",
+      download: "Download my answers",
+      downloadCopy: "Download a copy"
     }
   },
 
@@ -339,7 +387,7 @@ window.STUDY_CONFIG = {
   perItemRatings: {
     points: 7,
     questions: [
-      { id: "item_trust", text: "How much do you trust the AI’s main recommendation on this decision?", low: "Not at all", high: "Completely" },
+      { id: "item_trust", text: "How much do you trust the AI’s recommendation on this decision?", low: "Not at all", high: "Completely" },
       { id: "item_ai_understood", text: "How well did the AI understand this situation?", low: "Not at all", high: "Very well" }
     ]
   },
@@ -349,23 +397,30 @@ window.STUDY_CONFIG = {
   endMeasures: {
     points: 7,
     blocks: [
-      /* Short set: 6 questions (was 11). Kept the two strongest trust items,
-         one competence and one warmth item, and the two most direct
-         humanlikeness pairs (the interface manipulation check). Cut:
-         "I could depend on…", "capable", "friendly", "Artificial–Lifelike",
-         "Fake–Natural". Earlier cuts and the full set are in git history. */
+      /* At least 3 items per scale, so each scale's reliability (Cronbach's
+         alpha) can be checked: trust 3, competence 3, warmth 3, humanlikeness 4
+         word pairs (the interface manipulation check). 13 questions, about a
+         minute. To shorten later, drop items only after the pilot shows which
+         ones hang together. */
       { id: "trust", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
         { id: "trust_1", text: "I trusted the AI’s recommendations." },
-        { id: "trust_2", text: "The AI’s recommendations were reliable." }
+        { id: "trust_2", text: "The AI’s recommendations were reliable." },
+        { id: "trust_3", text: "I could depend on the AI’s recommendations." }
       ] },
       { id: "competence", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "comp_1", text: "The AI was competent." }
+        { id: "comp_1", text: "The AI was competent." },
+        { id: "comp_2", text: "The AI was capable." },
+        { id: "comp_3", text: "The AI knew what it was talking about." }
       ] },
       { id: "warmth", kind: "likert", low: "Strongly disagree", high: "Strongly agree", items: [
-        { id: "warm_1", text: "The AI seemed warm." }
+        { id: "warm_1", text: "The AI seemed warm." },
+        { id: "warm_2", text: "The AI seemed friendly." },
+        { id: "warm_3", text: "The AI seemed good-natured." }
       ] },
       { id: "humanlike", kind: "pairs", prompt: "Please rate your impression of the AI on these scales.", items: [
         { id: "human_1", left: "Machinelike", right: "Humanlike" },
+        { id: "human_2", left: "Artificial", right: "Lifelike" },
+        { id: "human_3", left: "Fake", right: "Natural" },
         { id: "human_4", left: "Like using a tool", right: "Like talking to someone" }
       ] }
     ]
