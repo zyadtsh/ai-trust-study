@@ -414,7 +414,7 @@
     });
     cols = cols.concat([
       ['Time (seconds)', 'sec_first_answer', 'From the decision appearing to saving the first answer (reading and deciding).', 'seconds'],
-      ['Time (seconds)', 'sec_to_ask', 'From saving the first answer to pressing Ask / Run analysis. The buttons sit in different places, so compare only within an interface.', 'seconds'],
+      ['Time (seconds)', 'sec_to_ask', 'From saving the first answer to pressing Ask. The buttons sit in different places, so compare only within an interface.', 'seconds'],
       ['Time (seconds)', 'sec_final_answer', 'From the AI\'s reply appearing to saving the final answer.', 'seconds'],
       ['Time (seconds)', 'sec_ratings', 'Time on the questions after the decision.', 'seconds'],
       ['Time (seconds)', 'sec_total', 'The whole decision, including its two ratings.', 'seconds']

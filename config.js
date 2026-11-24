@@ -10,7 +10,7 @@
    ========================================================================= */
 window.STUDY_CONFIG = {
   studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
-  version: "1.2-pilot",   // 1.1: answer scale 0–100, neutral Tool query. 1.2: no run details in the Tool; Terminal, Notebook and Report looks. Change this whenever items, text or settings change during data collection
+  version: "1.3-pilot",   // 1.1: answer scale 0–100, neutral Tool query (toolQuery default "terse"). 1.2: no run details in the Tool; Terminal, Notebook and Report looks. 1.3: Tool shows the chat question word for word (toolQuery default "same"); same Ask button, requests, caption and locked hint in every interface and look; App keeps every reply on screen. Change this whenever items, text or settings change during data collection
 
   /* -----------------------------------------------------------------------
      DATA COLLECTION (remote participants)
@@ -39,8 +39,8 @@ window.STUDY_CONFIG = {
     label: "Interface (the manipulation)",
     what: "Each participant gets one. ?pid=N assigns from the balanced schedule (odd = Messaging, even = Tool); no pid = random; ?ui=chat or ?ui=tool forces it.",
     choices: {
-      chat: { label: "Messaging", note: "Humanlike frame: a conversation with a named contact, an avatar, message bubbles, timestamps and a typing indicator. The participant sends a pre-written message with “Ask”." },
-      tool: { label: "Tool", note: "Tool-like frame: no name, no avatar, no conversation. The two options are shown as inputs, a Run button starts the analysis, and the identical text appears as the output." }
+      chat: { label: "Messaging", note: "Humanlike frame: a conversation with a named contact, an avatar, message bubbles, timestamps and a typing indicator. The participant sends a pre-written question with “Ask”." },
+      tool: { label: "Tool", note: "Tool-like frame: no name, no avatar, no message bubbles. The question and the two options are shown as inputs, the same “Ask” button gets the reply, and the identical text appears as the output. The question (with Tool question wording = Same), the button, the follow-up and second-opinion requests and the locked hint use the same words as Messaging; only the frame and its own labels differ." }
     }
   },
 
@@ -54,26 +54,26 @@ window.STUDY_CONFIG = {
   designOptions: {
     toolLook: {
       label: "Tool version: look",
-      what: "Only affects the Tool interface.",
+      what: "Only affects the Tool interface. Every look uses the same words as Messaging for the question (with Tool question wording = Same), the “Ask” button, the follow-up and second-opinion requests, the “Second opinion” caption and the locked hint (config.js → interfaceText.shared), and shows waiting without words, like the typing dots. Each look keeps its own frame labels (title “AI tool”, Query / Options / Output and the like).",
       "default": "app",
       choices: {
-        light:  { label: "Light",  note: "A form with inputs, a Run button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
-        medium: { label: "Medium", note: "A grid with column letters and row numbers, a formula bar and an output panel. Clearly a spreadsheet-style tool while staying uncluttered." },
-        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue (your pick). Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
-        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a product title bar, the two options as input cards, a “Run analysis” button, inputs on the left and output on the right; each AI reply opens in its own tab under “Generated summary”. Only the AI text: no run details, IDs, timings, scores or “Selected” field, so the reply carries the same information as in Messaging. Strong tool cue without the numbers/analysis feel of a grid." },
-        terminal: { label: "Terminal", note: "A command line: dark window, monospace text, the inputs printed by a command, a “Run” button that sends the next command, and the reply printed below it. The most machine-like look, with no product branding. Trade-offs: the AI text is in a monospace font, light on dark (every other look uses the shared font, dark on light), which reads more slowly and may itself change trust; it still has turn-taking (command, then reply), like the chat; and it can feel technical or unfamiliar to people who never use a terminal, so familiarity becomes part of the difference." },
-        notebook: { label: "Notebook", note: "A data-science notebook: code cells (In [1]) with outputs (Out [1]). The inputs appear as a table produced by code, the Run button runs a recommend(…) cell, and the reply appears as the cell's output in the shared font. Strong “computed by an analysis” cue, which may raise trust on analytical items for reasons other than the absence of humanlike cues; showing code can feel technical to some participants." },
-        report: { label: "Report", note: "A generated document on a page: “1. Request” (query and both options) with a “Generate recommendation” button, then each AI reply is added as a numbered section of the same document. No conversation layout or turn-taking at all, only a document that grows. Formal and authoritative; with the Light look it is the least technical tool look, but the document style may lend extra authority." }
+        light:  { label: "Light",  note: "A plain form: the query, the two options in a table, an “Ask” button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
+        medium: { label: "Medium", note: "A grid with column letters and row numbers (the question in row 2, the options below), a formula bar (=ASK(\"<the question>\", …)) and an output panel. No title bar. Clearly a spreadsheet-style tool while staying uncluttered." },
+        full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue. Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
+        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a title bar, the query and the two options on the left with an “Ask” button, and the output on the right, where every AI reply stays on screen, numbered, under the request it answers. Only the AI text: no run details, IDs, timings or scores. Strong tool cue without the numbers/analysis feel of a grid." },
+        terminal: { label: "Terminal", note: "A command line: dark window, monospace text. The options are printed by a command, “Ask” runs ask \"<the question>\", and the reply is printed below it. The most machine-like look. Trade-offs: the AI text is in a monospace font, light on dark (every other look uses the shared font, dark on light), which reads more slowly and may itself change trust; it still has turn-taking (command, then reply), like the chat; and it can feel unfamiliar to people who never use a terminal, so familiarity becomes part of the difference." },
+        notebook: { label: "Notebook", note: "A data-science notebook: code cells (In [1]) with outputs (Out [1]). The options appear as a table produced by code, “Ask” runs an ask(\"<the question>\", options) cell, and the reply appears as the cell's output in the shared font. Strong “computed by code” cue, which may raise trust on analytical items for reasons other than the absence of humanlike cues; code can feel technical to some participants." },
+        report: { label: "Report", note: "A document on a page: the query and the two options with an “Ask” button; each AI reply is then added as a section headed by the question it answers. No conversation layout, only a document that grows. With Light, the least technical tool look, but the document style may lend extra authority." }
       }
     },
 
     toolQuery: {
-      label: "Tool version: wording of the query",
-      what: "What the Tool shows in its Query box. Messaging always sends the item's askText as a message.",
-      "default": "terse",
+      label: "Tool version: wording of the question",
+      what: "What the Tool shows as its query. Messaging always sends the item's askText.",
+      "default": "same",
       choices: {
-        terse: { label: "Neutral (tool-style)", note: "Uses the item's toolQuery, e.g. “Choose message (A/B): roommate's late-night calls”. Keeps the first-person, conversational request out of the Tool's Query line, so it reads as software (the option texts themselves are the same in both interfaces). The inputs then differ slightly in wording between the two interfaces; the AI's reply words stay identical." },
-        same:  { label: "Same as chat message", note: "Shows the exact chat message, e.g. “How should I bring up Sam's late-night calls?”. Inputs are word for word identical across interfaces, but the Tool then contains a first-person, conversational line, which is a humanlike cue." }
+        same:  { label: "Same as chat message", note: "The Tool shows the exact question the Messaging participant sends, e.g. “How should I bring up Sam's late-night calls?”, so the request, like the options and the reply, is word for word the same in both conditions; only the frame and its own labels differ. The Tool then contains a first-person question, a mild conversational cue, but the participant is the one asking (as in a search box), not the AI." },
+        terse: { label: "Neutral (tool-style)", note: "Shows the item's toolQuery instead, e.g. “Choose message (A/B): roommate's late-night calls”. Reads more like software, but the wording of the request then differs between conditions, which is a confound on top of the frame." }
       }
     },
 
@@ -144,8 +144,8 @@ window.STUDY_CONFIG = {
       what: "How each frame presents the source of the second AI reply.",
       "default": "same",
       choices: {
-        separate: { label: "A second AI", note: "Messaging: a second contact (“Assistant 2”) answers in the same thread. Tool: output labelled “model 2”. Matches the everyday meaning of a second opinion (from someone else) and avoids the first AI appearing to change its mind." },
-        same:     { label: "The same AI again", note: "Messaging: the same contact answers again. Tool: output labelled “run 2”. Like regenerating an answer. With “Neutral” or “Disagrees” content, the same contact appears to contradict itself, which reads more strongly in a conversation than in a second run of a function." }
+        separate: { label: "A second AI", note: "Messaging: a second contact (“Assistant 2”) answers in the same thread. Tool: output captioned “AI tool 2 · Second opinion”. Matches the everyday meaning of a second opinion (from someone else) and avoids the first AI appearing to change its mind." },
+        same:     { label: "The same AI again", note: "Messaging: the same contact answers again. Tool: output captioned “Second opinion”, as in Messaging. Like regenerating an answer. With “Neutral” or “Disagrees” content, the same contact appears to contradict itself, which reads more strongly in a conversation than in a second run of a function." }
       }
     },
 
@@ -155,7 +155,7 @@ window.STUDY_CONFIG = {
       "default": "panel",
       choices: {
         panel: { label: "Shared left panel", note: "Same place and look in both conditions, so click rates are directly comparable. Slightly less natural: the reply they trigger appears on the right." },
-        frame: { label: "Inside each interface", note: "Messaging: as quick-reply chips above the message box. Tool: as buttons on the output bar. More natural use of each interface, but the button's position and look now differ between conditions, which can change how often people click." }
+        frame: { label: "Inside each interface", note: "Messaging: as quick-reply chips above the message box. Tool: as buttons next to the output. More natural use of each interface, but the button's position and look now differ between conditions, which can change how often people click." }
       }
     },
 
@@ -192,7 +192,7 @@ window.STUDY_CONFIG = {
 
     delayMs: {
       label: "Reply delay (milliseconds)",
-      what: "Same in both interfaces: typing dots in Messaging, a progress indicator (“Processing…”) in Tool. Applies to every AI reply.",
+      what: "Same in both interfaces: typing dots in Messaging, a wordless progress bar or spinner in Tool. Applies to every AI reply.",
       "default": 2500,
       type: "number", min: 0, max: 15000, step: 250,
       note: "Longer delays make the typing indicator or progress bar more noticeable; very short ones can feel instant or fake."
@@ -271,7 +271,7 @@ window.STUDY_CONFIG = {
       title: "Thank you",
       html:
         '<p>Thank you for taking part.</p>' +
-        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as an analysis tool. The AI’s written replies were word for word the same in both versions.</p>' +
+        '<p><b>What this study is about.</b> We are studying whether the way an AI is presented changes how much people trust and use its advice. Some participants saw the AI as a contact in a messaging app; others saw it as a software tool. The AI’s written replies were word for word the same in both versions.</p>' +
         '<p><b>What was set up in advance.</b> There was no live AI in this study. All replies were written ahead of time by the researchers and were not based on any analysis of your situation: for every decision we wrote a convincing reply for each option, and both options were designed to be equally reasonable, so there was no right answer. Which option the AI recommended followed a fixed rule: it recommended the option you had <em>not</em> leaned toward in your first answer (or a preset option if you had no preference).</p>' +
         '<p>We could not tell you this at the start, because knowing it could have changed how you responded.</p>' +
         '<p><b>Your choice.</b> If you would rather your answers not be used, tick the box below. If you change your mind later, email us your participation code (below) and we will delete your answers; without the code we cannot tell which answers are yours, because we do not record your name.</p>',
@@ -318,8 +318,24 @@ window.STUDY_CONFIG = {
   /* Used only when "Say the lean as a number" is on. */
   leanNumberTemplate: "On a 0–100 scale from {A} to {B}, this comes out at about {pos}.",
 
-  /* Interface chrome. The AI's words come from the items, never from here. */
+  /* Interface chrome. The AI's words come from the items, never from here.
+     "shared" holds the words that have the same job in both interfaces: the Ask
+     button, the locked hint, the follow-up and second-opinion requests, the
+     "Second opinion" caption and the screen-reader waiting label. With Tool
+     question wording = "Same" (default), the Tool also shows the chat's question
+     word for word. Each frame keeps only its own chrome: the chat's contact name,
+     status, bubbles, timestamps and "Today"; the Tool's title ("AI tool") and
+     structural labels (Query, Options, Output, and per look Field/Name/Description,
+     menus and cell references, the terminal prompt, notebook In/Out). */
   interfaceText: {
+    shared: {
+      askButton: "Ask",                   // the button that gets the AI's reply, in every interface and look
+      lockedHint: "Save your first answer before you ask.",
+      followUpPrompt: "Why {option}?",    // {option} = the option the main reply recommended
+      secondOpinionPrompt: "Can I get a second opinion?",
+      secondOpinionCaption: "Second opinion",
+      waitingLabel: "Waiting for the reply"  // screen readers only, while the reply is on its way (both interfaces)
+    },
     chat: {
       name: "Assistant",
       status: "AI assistant",
@@ -328,90 +344,28 @@ window.STUDY_CONFIG = {
       secondName: "Assistant 2",          // second-opinion contact when "A second AI" is chosen
       secondPersonaName: "Alex",          // ...and when the named persona is on
       today: "Today",
-      sendButton: "Ask",
-      composerPlaceholder: "Message",
-      lockedHint: "Save your first answer to send this message.",
-      followUpPrompt: "Why {option}?",    // {option} = the option the main reply recommended
-      secondOpinionPrompt: "Can I get a second opinion?",
-      secondOpinionCaption: "Second opinion"
+      composerPlaceholder: "Message"
     },
     tool: {
-      appTitle: "Decision workbook",
-      sheetName: "Sheet1",
-      menus: ["File", "Edit", "View", "Insert", "Format", "Data", "Help"],
-      runButton: "Run",
-      running: "Calculating…",
-      ready: "Ready",
-      fn: "RECOMMEND",
-      explainFn: "EXPLAIN",
-      secondSameNote: "run 2",           // second opinion, "The same AI again"
-      secondSeparateNote: "model 2",     // second opinion, "A second AI"
-      outputTitle: "Output",
-      outputEmpty: "No output yet.",
-      lockedHint: "Save your first answer to enable Run.",
-      secondOpinionCaption: "Second opinion",
-      fieldHeader: "Field",
-      resultHeader: "Result",
+      title: "AI tool",                   // title of every look except Medium, which has no title bar (the chat's status line reads "AI assistant")
+      secondName: "AI tool 2",            // second-opinion source when "A second AI" is chosen (chat: "Assistant" -> "Assistant 2")
+      queryLabel: "Query",
+      optionsLabel: "Options",
+      outputLabel: "Output",
+      fieldHeader: "Field",               // spreadsheet looks (Medium, Full)
       nameRow: "Name",
       textRowEmotional: "Message",
       textRowOther: "Description",
-      queryRow: "Query",
-      lightTitle: "Recommendation",
-      inputsLabel: "Inputs",
-      queryLabel: "Query",
-      app: {                              // the "App" look (designOptions → toolLook)
-        title: "Decision Analysis",
-        version: "v2.1",
-        runButton: "Run analysis",
-        processing: "Processing…",
-        inputTitle: "New analysis",
-        outputTitle: "Output",
-        outputEmpty: "No output yet. Run an analysis to see results.",
-        tabMain: "Result",                // tab names; one tab per AI reply
-        kindFollowUp: "Factor details",
-        kindSecond: "Alternate run",
-        rationaleLabel: "Generated summary"
-      },
-      terminal: {                         // the "Terminal" look
-        title: "decide — terminal",
-        prompt: "$",
-        showCommand: "decide show",       // already run: prints the query and the options
-        runCommand: "decide recommend",
-        followUpCommand: "decide explain",
-        secondCommand: "decide recommend {flag}",
-        secondSameFlag: "--run 2",        // second opinion, "The same AI again"
-        secondSeparateFlag: "--model 2",  // second opinion, "A second AI"
-        queryLabel: "query",
-        runButton: "Run ⏎",
-        running: "running…"
-      },
-      notebook: {                         // the "Notebook" look
-        title: "Notebook · decision",
-        idle: "Idle",
-        busy: "Busy",
-        inLabel: "In",
-        outLabel: "Out",
-        queryVar: "query",
-        optionsVar: "options",
-        runCall: "recommend(options, query)",
-        followUpCall: "explain(Out[{out}])",
-        secondCall: "recommend(options, query, {arg})",
-        secondSameArg: "run=2",
-        secondSeparateArg: "model=2",
-        runButton: "Run",
-        running: "Running…"
-      },
-      report: {                           // the "Report" look
-        title: "Report generator",
-        docTitle: "Recommendation report",
-        requestHeading: "Request",
-        mainHeading: "Recommendation",
-        followUpHeading: "Explanation",
-        secondHeading: "Second opinion",
-        runButton: "Generate recommendation",
-        lockedHint: "Save your first answer to generate the recommendation.",
-        running: "Generating…"
-      }
+      sheetName: "Sheet1",                // spreadsheet looks (Medium, Full)
+      menus: ["File", "Edit", "View", "Insert", "Format", "Data", "Help"],
+      fn: "ASK",                          // =ASK("<question>", B3:C8); later requests show ASK("<request>")
+      prompt: "$",                        // Terminal look: $ cat options.txt, then $ ask "<request>"
+      optionsCommand: "cat options.txt",
+      askCommand: "ask",
+      inLabel: "In",                      // Notebook look: options, then ask("<request>", options)
+      outLabel: "Out",
+      optionsVar: "options",
+      askFn: "ask"
     }
   },
 
@@ -478,8 +432,10 @@ window.STUDY_CONFIG = {
        id, type ("practice" | "emotional" | "analytical"), pair (topic the
        emotional and analytical versions share; for your notes), title (short
        reminder used in the end ratings), scenario, question (slider
-       question), askText (the message the participant sends in Messaging),
-       toolQuery (neutral line shown in the Tool's Query box; see designOptions → toolQuery),
+       question), askText (the participant's question: sent as the message in
+       Messaging and shown word for word as the Tool's query), toolQuery (neutral
+       line the Tool shows instead only if designOptions → toolQuery is "terse",
+       labelled "Neutral (tool-style)"),
        optionA / optionB { label, name, text },
        attributes: [{ label, a, b }]   (analytical items; [] otherwise)
        defaultSide "A" | "B"  (fixed mode, or when the first answer is 50, the middle)

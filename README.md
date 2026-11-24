@@ -1,4 +1,4 @@
-# Decision study (v1.0-pilot)
+# Decision study (v1.3-pilot)
 
 A browser-based study instrument. It tests whether the look of an AI interface (a messaging-style chat or a software-style tool) changes how much people trust the same scripted AI advice, on emotional and on analytical decisions.
 
@@ -129,7 +129,8 @@ If something in `config.js` is broken, a red box at the top of the page lists th
 
 1. Read the scenario and the two options. The left panel is identical in both conditions.
 2. **First answer** on a 0–100 slider ("Definitely A" … "Definitely B"). There's no handle until it's clicked.
-3. **Get the recommendation:** "Ask" (Messaging) or "Run analysis" (Tool). Both wait the same 2.5 s.
+3. **Get the recommendation:** the same "Ask" button in both interfaces. Both wait the same 2.5 s.
+   The question (with Tool question wording = Same, the default), the button, the follow-up and second-opinion requests, the "Second opinion" caption and the locked hint use the same words in Messaging and every Tool look (`config.js` → `interfaceText.shared`). Each frame keeps only its own labels: the chat's contact name, status and timestamps; the Tool's title ("AI tool") and labels such as Query, Options and Output.
 4. **Reply:** the same words in both interfaces.
 5. **Final answer** on the same slider. It starts at the first answer, with a marker there.
 6. **Two questions:** trust in the AI's recommendation, and how well it understood the situation (1–7).
@@ -142,8 +143,8 @@ At the end come 13 ratings of the AI: trust, competence and warmth (3 items each
 
 | Option | Default |
 |---|---|
-| Tool look | **App** (decision software; shows only the AI reply, with no run details, IDs, timings or statistics). Also: Light (form), Medium / Full (spreadsheet), Terminal (command line), Notebook (code cells), Report (generated document) |
-| Tool query wording | **Neutral** ("Choose message (A/B): …"), or the chat message word for word |
+| Tool look | **App** (decision software; each output shows the request and the AI reply, with no run details, IDs, timings or statistics). Also: Light (form), Medium / Full (spreadsheet), Terminal (command line), Notebook (code cells), Report (a document that grows) |
+| Tool question wording | **Same as the chat message** (word for word), or a neutral tool-style line (a wording confound) |
 | Messaging contact / social cues | Generic "Assistant" / full |
 | Which side the AI recommends | Opposite to the first answer |
 | Lean as a number | Off |
@@ -199,8 +200,8 @@ No names, emails or IP addresses are collected, and there are no free-text answe
 
 1. The AI's words, delay, font size and the left panel are identical in both conditions. Only the right-hand interface differs.
 2. The AI text avoids "I" and "we", so the same words read naturally in a chat bubble and in tool output.
-3. The Tool's query box shows a neutral line ("Choose message (A/B): …") instead of the first-person chat message; switchable in reviewer mode.
-4. Each decision starts fresh: a new conversation or a new analysis.
+3. The Tool shows the participant's question word for word, as in the chat message. A neutral tool-style line (the item's `toolQuery`) can be switched on in reviewer mode (Tool question wording = Neutral), but it adds a wording difference between conditions.
+4. Each decision starts fresh: a new conversation or a fresh tool screen.
 5. Replies appear all at once after the delay. End questions come in a fixed order.
 6. Every question is required. There's no back button and no free text.
 7. Built for laptop or desktop screens, in English.

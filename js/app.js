@@ -10,7 +10,7 @@
   window.App = A;
 
   var params = new URLSearchParams(location.search);
-  var REVIEW_KEY = 'haitrust.review.v1';
+  var REVIEW_KEY = 'haitrust.review.v2';   // v2: only options that differ from the defaults are kept
   A.review = ['1', 'true', 'yes', 'on'].indexOf(String(params.get('review') || '').toLowerCase()) >= 0;
   A.skipDelays = false;
   A.screen = null;
@@ -199,7 +199,13 @@
 
   A.persistReview = function () {
     if (!A.review) return;
-    U.writeJSON(REVIEW_KEY, { options: A.session.options, ui: A.session.ui, skipDelays: A.skipDelays });
+    // Save only the options that differ from config.js, so a later change of a
+    // default reaches reviewer mode instead of being masked by an old saved copy.
+    var defs = D.defaultOptions(), changed = {};
+    Object.keys(A.session.options || {}).forEach(function (k) {
+      if (A.session.options[k] !== defs[k]) changed[k] = A.session.options[k];
+    });
+    U.writeJSON(REVIEW_KEY, { options: changed, ui: A.session.ui, skipDelays: A.skipDelays });
   };
 
   /* ------------------------------------------------------------------ */
