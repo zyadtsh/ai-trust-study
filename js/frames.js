@@ -35,7 +35,7 @@
     var ai = latest[latest.length - 1];
     if (!ai || ai.hasAttribute('data-pending')) { sc.scrollTop = max; return; }
     var req = ai.previousElementSibling;
-    if (req && !req.classList.contains('msg--out')) req = null;
+    if (req && !req.classList.contains('msg--out') && !req.hasAttribute('data-req')) req = null;
     var room = sc.clientHeight - ai.offsetHeight - 24;
     var extra = req && room > 0 ? Math.min(req.offsetHeight + 10, room) : 0;
     sc.scrollTop = Math.max(0, Math.min(max, ai.offsetTop - 12 - extra));
@@ -154,6 +154,9 @@
     var lock = !turns.length && !ctx.canAsk ? '<div class="frame-lock">' + esc(t.lockedHint) + '</div>' : '';
 
     if (look === 'app') return app(ctx, t, runEnabled, pending, lock);
+    if (look === 'terminal') return terminal(ctx, t, runEnabled, pending);
+    if (look === 'notebook') return notebook(ctx, t, runEnabled, pending);
+    if (look === 'report') return report(ctx, t, runEnabled, pending);
 
     if (look === 'light') {
       return '<div class="tool tool--light" data-frame="tool">' +
@@ -251,11 +254,10 @@
   function output(ctx, t, range) {
     var turns = ctx.rec.turns;
     var pending = turns.some(function (x) { return !x.shown; });
-    var secondNote = ctx.options.secondOpinionSource === 'same' ? t.secondSameNote : t.secondSeparateNote;
     var runs = turns.map(function (turn, i) {
       var fn = turn.kind === 'followup'
         ? t.explainFn + '(' + t.outputTitle + ' 1)'
-        : t.fn + '(' + range + ')' + (turn.kind === 'second' ? ' · ' + secondNote : '');
+        : t.fn + '(' + range + ')' + (turn.kind === 'second' ? ' · ' + secondNote(ctx, t) : '');
       var cap = turn.kind === 'second' ? '<span class="run-cap">' + esc(t.secondOpinionCaption) + '</span>' : '';
       var head = '<div class="run-head"><span class="run-n">' + esc(t.outputTitle) + ' ' + (i + 1) + '</span><code>' + esc(fn) + '</code>' + cap +
         '<span class="run-time">' + (turn.shown ? esc(U.clock(turn.shown_at)) : '') + '</span></div>';
@@ -302,8 +304,6 @@
         '</section>' +
         appOutput(ctx, t, a, pending) +
       '</div>' +
-      '<footer class="ap-foot">' +
-        '<span class="ap-foot-id">' + esc(a.sessionLabel) + ' ' + esc(runId(item.id, 0)) + '</span></footer>' +
     '</div>';
   }
 
@@ -319,8 +319,8 @@
       (attrs ? '<div class="ap-attrs">' + attrs + '</div>' : '') + '</div>';
   }
 
-  /* Output pane: one tab per AI turn, shown as a report with labelled fields.
-     The Summary field holds exactly the same text as the chat reply. */
+  /* Output pane: one tab per AI turn. The summary holds exactly the same text
+     as the chat reply, and nothing else: no run statistics, IDs or timings. */
   function appOutput(ctx, t, a, pending) {
     var turns = ctx.rec.turns, item = ctx.item;
     var key = item.id + '|' + (ctx.rec.started_at || '');
@@ -328,9 +328,9 @@
       appTab = { key: key, count: turns.length, idx: Math.max(0, turns.length - 1) };
     }
     var idx = Math.min(appTab.idx, Math.max(0, turns.length - 1));
-    var secondNote = ctx.options.secondOpinionSource === 'same' ? t.secondSameNote : t.secondSeparateNote;
     var tabName = function (turn) {
-      return turn.kind === 'main' ? a.tabMain : turn.kind === 'followup' ? a.kindFollowUp : a.kindSecond;
+      return turn.kind === 'main' ? a.tabMain : turn.kind === 'followup' ? a.kindFollowUp
+        : a.kindSecond + ' (' + secondNote(ctx, t) + ')';
     };
 
     var tabs = turns.map(function (turn, i) {
@@ -341,27 +341,14 @@
     var panel = '';
     var turn = turns[idx];
     if (turn) {
-      var type = turn.kind === 'main' ? a.kindMain : turn.kind === 'followup' ? a.kindFollowUp : a.kindSecond + ' · ' + secondNote;
-      var row = function (k, v) { return '<tr><th>' + esc(k) + '</th><td>' + v + '</td></tr>'; };
-      if (turn.shown) {
-        var text = ctx.turnText(turn);
-        // Only neutral run information: no made-up statistics and no restated pick,
-        // so the Tool carries the same information as the Messaging reply.
-        panel = '<div class="ap-report" data-latest>' +
-          '<div class="ap-res-label">' + esc(a.rationaleLabel) + '</div>' +
-          '<div class="run-body">' + U.paras(text) + '</div>' +
-          '<div class="ap-res-label ap-res-label--details">' + esc(a.detailsLabel) + '</div>' +
-          '<table class="ap-fields">' +
-            row(a.typeLabel, esc(type)) +
-            row(a.runLabel, esc(runId(item.id, idx + 1)) + ' · ' + esc(secs(turn))) +
-          '</table>' +
-        '</div>';
-      } else {
-        panel = '<div class="ap-report" data-latest data-pending>' +
-          '<table class="ap-fields">' + row(a.typeLabel, esc(type)) + '</table>' +
-          '<div class="run-body is-busy" role="status"><span class="bar"><i></i></span><span>' + esc(a.processing) + '</span></div>' +
-        '</div>';
-      }
+      panel = turn.shown
+        ? '<div class="ap-report" data-latest>' +
+            '<div class="ap-res-label">' + esc(a.rationaleLabel) + '</div>' +
+            '<div class="run-body">' + U.paras(ctx.turnText(turn)) + '</div>' +
+          '</div>'
+        : '<div class="ap-report" data-latest data-pending>' +
+            '<div class="run-body is-busy" role="status"><span class="bar"><i></i></span><span>' + esc(a.processing) + '</span></div>' +
+          '</div>';
     }
 
     var actions = extraButtons(ctx, 'out-btn');
@@ -373,21 +360,176 @@
     '</section>';
   }
 
-  function secs(turn) {
-    return ((turn.shown_at - turn.requested_at) / 1000).toFixed(1) + ' s';
+  /* "run 2" (the same AI again) or "model 2" (a second AI), per secondOpinionSource. */
+  function secondNote(ctx, t) {
+    return ctx.options.secondOpinionSource === 'same' ? t.secondSameNote : t.secondSeparateNote;
   }
 
-  /* Small stable hash, so the run ID is the same for every participant who sees
-     a given item (never random per person). */
-  function hash(s) {
-    var h = 0; s = String(s);
-    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    return h;
+  /* The inputs every look shows: the two options with their label, name (only
+     for items with attributes, as in the other frames), text and attributes. */
+  function optionParts(item, side) {
+    var o = item['option' + side];
+    var hasAttrs = item.attributes && item.attributes.length;
+    return {
+      label: o.label,
+      name: hasAttrs ? o.name : '',
+      text: item.type === 'emotional' ? '“' + o.text + '”' : o.text,
+      attrs: (item.attributes || []).map(function (x) { return { label: x.label, value: side === 'A' ? x.a : x.b }; })
+    };
   }
 
-  /* Stable, made-up run ID so the same item always shows the same ID. */
-  function runId(itemId, n) {
-    return '#' + (hash(String(itemId) + ':' + n) % 0xfffff).toString(16).toUpperCase().padStart(5, '0');
+  function lockLine(ctx, t, cls, hint) {
+    return !ctx.rec.turns.length && !ctx.canAsk ? '<div class="' + cls + '">' + esc(hint || t.lockedHint) + '</div>' : '';
+  }
+
+  /* ================================================================== */
+  /* Tool, "Terminal" look: a command line                               */
+  /* ================================================================== */
+  function terminal(ctx, t, runEnabled, pending) {
+    var m = t.terminal, item = ctx.item, turns = ctx.rec.turns;
+    var p = '<span class="tm-prompt" aria-hidden="true">' + esc(m.prompt) + '</span> ';
+    var cmdFor = function (turn) {
+      return turn.kind === 'main' ? m.runCommand : turn.kind === 'followup' ? m.followUpCommand
+        : U.fill(m.secondCommand, { flag: ctx.options.secondOpinionSource === 'same' ? m.secondSameFlag : m.secondSeparateFlag });
+    };
+    var opt = function (side) {
+      var o = optionParts(item, side);
+      return '<div class="tm-opt"><div><span class="tm-key">[' + esc(side) + ']</span> ' + esc(o.label) +
+          (o.name ? ' · <b>' + esc(o.name) + '</b>' : '') + '</div>' +
+        '<div class="tm-ind">' + esc(o.text) + '</div>' +
+        (o.attrs.length ? '<div class="tm-ind tm-attrs">' + o.attrs.map(function (x) {
+          return '<span>' + esc(x.label) + '</span><span>' + esc(x.value) + '</span>';
+        }).join('') + '</div>' : '') +
+      '</div>';
+    };
+
+    var log = '<div class="tm-line">' + p + esc(m.showCommand) + '</div>' +
+      '<div class="tm-out"><div><span class="tm-dim">' + esc(m.queryLabel) + ':</span> ' + esc(queryText(ctx)) + '</div>' + opt('A') + opt('B') + '</div>';
+    turns.forEach(function (turn) {
+      log += '<div class="tm-line" data-req>' + p + esc(cmdFor(turn)) + '</div>';
+      log += turn.shown
+        ? '<div class="tm-reply" data-latest>' +
+            (turn.kind === 'second' ? '<div class="tm-dim">' + esc(t.secondOpinionCaption) + '</div>' : '') +
+            U.paras(ctx.turnText(turn)) + '</div>'
+        : '<div class="tm-reply tm-busy" data-latest data-pending role="status"><span class="tm-spin" aria-hidden="true"></span>' + esc(m.running) + '</div>';
+    });
+
+    var runBtn = '<button class="run-btn tm-run' + (runEnabled ? ' is-ready' : '') + '" type="button" data-act="ask"' + (runEnabled ? '' : ' disabled') + '>' +
+      esc(m.runButton) + '</button>';
+    var input = turns.length
+      ? (pending ? '' : p + '<span class="tm-cursor" aria-hidden="true"></span>')
+      : p + '<span class="' + (ctx.canAsk ? '' : 'tm-dim') + '">' + esc(m.runCommand) + '</span><span class="tm-cursor" aria-hidden="true"></span>';
+    var extras = extraButtons(ctx, 'tm-btn');
+
+    return '<div class="tool tool--terminal" data-frame="tool">' +
+      '<header class="tm-bar"><span class="tm-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="tm-title">' + esc(m.title) + '</span></header>' +
+      '<div class="tm-screen" data-scroll>' + log + '</div>' +
+      lockLine(ctx, t, 'tm-lock') +
+      '<footer class="tm-input"><div class="tm-cmd">' + input + '</div>' + (extras || '') + (turns.length ? '' : runBtn) + '</footer>' +
+    '</div>';
+  }
+
+  /* ================================================================== */
+  /* Tool, "Notebook" look: code cells with outputs                      */
+  /* ================================================================== */
+  function notebook(ctx, t, runEnabled, pending) {
+    var n = t.notebook, item = ctx.item, turns = ctx.rec.turns;
+    var str = function (s) { return '<span class="nb-str">"' + esc(s) + '"</span>'; };
+    var code = function (s) { // highlights only the function name before "("
+      return esc(s).replace(/^(\w+)\(/, '<span class="nb-fn">$1</span>(');
+    };
+    var cell = function (count, src, out) {
+      return '<div class="nb-cell"><div class="nb-in" data-req><span class="nb-count">' + esc(n.inLabel) + ' [' + count + ']:</span>' +
+        '<pre class="nb-code">' + src + '</pre></div>' + (out || '') + '</div>';
+    };
+    var outCell = function (count, body, attrs) {
+      return '<div class="nb-out"' + (attrs || '') + '><span class="nb-count nb-count--out">' + esc(n.outLabel) + ' [' + count + ']:</span><div class="nb-out-body">' + body + '</div></div>';
+    };
+
+    // Cell 1 (already run): the query and the options table.
+    var a = optionParts(item, 'A'), b = optionParts(item, 'B');
+    var rows = (a.name ? [[t.nameRow, a.name, b.name]] : [])
+      .concat([[item.type === 'emotional' ? t.textRowEmotional : t.textRowOther, a.text, b.text]])
+      .concat(a.attrs.map(function (x, i) { return [x.label, x.value, b.attrs[i].value]; }));
+    var table = '<table class="nb-table"><thead><tr><th></th><th>' + esc(a.label) + '</th><th>' + esc(b.label) + '</th></tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr><th>' + esc(r[0]) + '</th><td>' + esc(r[1]) + '</td><td>' + esc(r[2]) + '</td></tr>'; }).join('') + '</tbody></table>';
+    var cells = cell(1, n.queryVar + ' = ' + str(queryText(ctx)) + '\n' + esc(n.optionsVar), outCell(1, table));
+
+    var count = 2, lastOut = 0;
+    var call = function (turn) {
+      if (turn.kind === 'main') return n.runCall;
+      if (turn.kind === 'followup') return U.fill(n.followUpCall, { out: lastOut || 2 });
+      return U.fill(n.secondCall, { arg: ctx.options.secondOpinionSource === 'same' ? n.secondSameArg : n.secondSeparateArg });
+    };
+    turns.forEach(function (turn) {
+      var src = code(call(turn));
+      var body = turn.shown
+        ? (turn.kind === 'second' ? '<div class="nb-cap">' + esc(t.secondOpinionCaption) + '</div>' : '') + '<div class="run-body">' + U.paras(ctx.turnText(turn)) + '</div>'
+        : '';
+      var out = turn.shown ? outCell(count, body, ' data-latest') : '<div class="nb-out" data-latest data-pending role="status"><div class="nb-out-body nb-busy"><span class="bar"><i></i></span>' + esc(n.running) + '</div></div>';
+      cells += cell(turn.shown ? count : '*', src, out);
+      if (turn.kind === 'main' && turn.shown) lastOut = count;
+      if (turn.shown) count++;
+    });
+
+    var runBtn = '<button class="run-btn nb-run' + (runEnabled ? ' is-ready' : '') + '" type="button" data-act="ask"' + (runEnabled ? '' : ' disabled') + '>' +
+      '<span class="run-icon" aria-hidden="true">▶</span>' + esc(n.runButton) + '</button>';
+    if (!turns.length) {
+      cells += '<div class="nb-cell nb-cell--next"><div class="nb-in"><span class="nb-count">' + esc(n.inLabel) + ' [ ]:</span>' +
+        '<pre class="nb-code">' + code(n.runCall) + '</pre></div>' +
+        '<div class="nb-run-row">' + runBtn + lockLine(ctx, t, 'nb-lock') + '</div></div>';
+    }
+    var extras = extraButtons(ctx, 'out-btn');
+
+    return '<div class="tool tool--notebook" data-frame="tool">' +
+      '<header class="nb-bar"><span class="nb-title">' + esc(n.title) + '</span>' +
+        '<span class="nb-kernel' + (pending ? ' is-busy' : '') + '"><i aria-hidden="true"></i>' + esc(pending ? n.busy : n.idle) + '</span></header>' +
+      '<div class="nb-sheet" data-scroll>' + cells + (extras ? '<div class="nb-extras">' + extras + '</div>' : '') + '</div>' +
+    '</div>';
+  }
+
+  /* ================================================================== */
+  /* Tool, "Report" look: one generated document that grows             */
+  /* ================================================================== */
+  function report(ctx, t, runEnabled, pending) {
+    var r = t.report, item = ctx.item, turns = ctx.rec.turns;
+    var a = optionParts(item, 'A'), b = optionParts(item, 'B');
+    var optBlock = function (o) {
+      return '<div class="rp-opt"><div class="rp-opt-head">' + esc(o.label) + (o.name ? ': ' + esc(o.name) : '') + '</div>' +
+        '<p>' + esc(o.text) + '</p>' +
+        (o.attrs.length ? '<table class="rp-attrs">' + o.attrs.map(function (x) {
+          return '<tr><th>' + esc(x.label) + '</th><td>' + esc(x.value) + '</td></tr>';
+        }).join('') + '</table>' : '') + '</div>';
+    };
+    var heading = function (turn) {
+      return turn.kind === 'main' ? r.mainHeading : turn.kind === 'followup' ? r.followUpHeading
+        : r.secondHeading + ' (' + secondNote(ctx, t) + ')';
+    };
+    var sections = turns.map(function (turn, i) {
+      var h = '<h2>' + (i + 2) + '. ' + esc(heading(turn)) + '</h2>';
+      return turn.shown
+        ? '<section class="rp-sec" data-latest>' + h + '<div class="run-body">' + U.paras(ctx.turnText(turn)) + '</div></section>'
+        : '<section class="rp-sec" data-latest data-pending>' + h + '<div class="run-body is-busy" role="status"><span class="bar"><i></i></span><span>' + esc(r.running) + '</span></div></section>';
+    }).join('');
+
+    var runBtn = '<button class="run-btn rp-run' + (runEnabled ? ' is-ready' : '') + '" type="button" data-act="ask"' + (runEnabled ? '' : ' disabled') + '>' +
+      '<span class="run-icon" aria-hidden="true">▶</span>' + esc(r.runButton) + '</button>';
+    var extras = extraButtons(ctx, 'out-btn');
+
+    return '<div class="tool tool--report" data-frame="tool">' +
+      '<header class="rp-bar"><span class="rp-title">' + esc(r.title) + '</span>' +
+        '<span class="rp-state">' + esc(pending ? r.running : t.ready) + '</span></header>' +
+      '<div class="rp-desk" data-scroll><article class="rp-page">' +
+        '<h1>' + esc(r.docTitle) + '</h1>' +
+        '<section class="rp-sec"><h2>1. ' + esc(r.requestHeading) + '</h2>' +
+          '<div class="rp-query"><span>' + esc(t.queryLabel) + '</span> ' + esc(queryText(ctx)) + '</div>' +
+          '<div class="rp-opts">' + optBlock(a) + optBlock(b) + '</div>' +
+          (turns.length ? '' : '<div class="rp-run-row">' + runBtn + lockLine(ctx, t, 'rp-lock', r.lockedHint) + '</div>') +
+        '</section>' +
+        sections +
+        (extras ? '<div class="rp-extras">' + extras + '</div>' : '') +
+      '</article></div>' +
+    '</div>';
   }
 
   window.Frames = F;

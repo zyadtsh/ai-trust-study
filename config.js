@@ -10,7 +10,7 @@
    ========================================================================= */
 window.STUDY_CONFIG = {
   studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
-  version: "1.1-pilot",   // 1.1: answer scale 0–100, no made-up run details, neutral Tool query. Change this whenever items, text or settings change during data collection
+  version: "1.2-pilot",   // 1.1: answer scale 0–100, no made-up run details, neutral Tool query. Change this whenever items, text or settings change during data collection
 
   /* -----------------------------------------------------------------------
      DATA COLLECTION (remote participants)
@@ -60,7 +60,10 @@ window.STUDY_CONFIG = {
         light:  { label: "Light",  note: "A form with inputs, a Run button and an output box. Reads as generic software rather than a spreadsheet. Weakest tool cue: the two conditions would differ mostly in layout and turn-taking." },
         medium: { label: "Medium", note: "A grid with column letters and row numbers, a formula bar and an output panel. Clearly a spreadsheet-style tool while staying uncluttered." },
         full:   { label: "Full",   note: "Adds a title bar, menus, a toolbar, sheet tabs and a status bar. The strongest, least humanlike tool cue (your pick). Trade-off: more visual clutter than the chat, so “more on screen” becomes part of the difference, and inert menus may distract a few people." },
-        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a product title bar, the two options as input cards, a “Run analysis” button, inputs on the left and output on the right; each AI reply opens in its own tab as a report: the identical AI text (“Generated summary”) followed by a small “Run details” table with only the type of run and a run ID with its duration. No made-up statistics, no “Selected” field, no confidence scores, so the reply carries the same information as in Messaging. The footer shows a fixed placeholder session ID. Strong tool cue without the numbers/analysis feel of a grid." }
+        app:    { label: "App",    note: "Decision-support software, not a spreadsheet: a product title bar, the two options as input cards, a “Run analysis” button, inputs on the left and output on the right; each AI reply opens in its own tab under “Generated summary”. Only the AI text: no run details, IDs, timings, scores or “Selected” field, so the reply carries the same information as in Messaging. Strong tool cue without the numbers/analysis feel of a grid." },
+        terminal: { label: "Terminal", note: "A command line: dark window, monospace text, the inputs printed by a command, a “Run” button that sends the next command, and the reply printed below it. The most machine-like look, with no product branding. Trade-offs: the AI text is in a monospace font, light on dark (every other look uses the shared font, dark on light), which reads more slowly and may itself change trust; it still has turn-taking (command, then reply), like the chat; and it can feel technical or unfamiliar to people who never use a terminal, so familiarity becomes part of the difference." },
+        notebook: { label: "Notebook", note: "A data-science notebook: code cells (In [1]) with outputs (Out [1]). The inputs appear as a table produced by code, the Run button runs a recommend(…) cell, and the reply appears as the cell's output in the shared font. Strong “computed by an analysis” cue, which may raise trust on analytical items for reasons other than the absence of humanlike cues; showing code can feel technical to some participants." },
+        report: { label: "Report", note: "A generated document on a page: “1. Request” (query and both options) with a “Generate recommendation” button, then each AI reply is added as a numbered section of the same document. No conversation layout or turn-taking at all, only a document that grows. Formal and authoritative; with the Light look it is the least technical tool look, but the document style may lend extra authority." }
       }
     },
 
@@ -365,14 +368,49 @@ window.STUDY_CONFIG = {
         outputTitle: "Output",
         outputEmpty: "No output yet. Run an analysis to see results.",
         tabMain: "Result",                // tab names; one tab per AI reply
-        kindMain: "Analysis",
         kindFollowUp: "Factor details",
         kindSecond: "Alternate run",
-        rationaleLabel: "Generated summary",
-        detailsLabel: "Run details",
-        typeLabel: "Type",
-        runLabel: "Run",
-        sessionLabel: "Session"
+        rationaleLabel: "Generated summary"
+      },
+      terminal: {                         // the "Terminal" look
+        title: "decide — terminal",
+        prompt: "$",
+        showCommand: "decide show",       // already run: prints the query and the options
+        runCommand: "decide recommend",
+        followUpCommand: "decide explain",
+        secondCommand: "decide recommend {flag}",
+        secondSameFlag: "--run 2",        // second opinion, "The same AI again"
+        secondSeparateFlag: "--model 2",  // second opinion, "A second AI"
+        queryLabel: "query",
+        runButton: "Run ⏎",
+        running: "running…"
+      },
+      notebook: {                         // the "Notebook" look
+        title: "Notebook · decision",
+        idle: "Idle",
+        busy: "Busy",
+        inLabel: "In",
+        outLabel: "Out",
+        queryVar: "query",
+        optionsVar: "options",
+        runCall: "recommend(options, query)",
+        followUpCall: "explain(Out[{out}])",
+        secondCall: "recommend(options, query, {arg})",
+        secondSameArg: "run=2",
+        secondSeparateArg: "model=2",
+        runButton: "Run",
+        running: "Running…"
+      },
+      report: {                           // the "Report" look
+        title: "Report generator",
+        docTitle: "Recommendation report",
+        requestHeading: "Request",
+        mainHeading: "Recommendation",
+        followUpHeading: "Explanation",
+        secondHeading: "Second opinion",
+        runButton: "Generate recommendation",
+        lockedHint: "Save your first answer to generate the recommendation.",
+        running: "Generating…"
       }
     }
   },

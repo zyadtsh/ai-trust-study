@@ -142,7 +142,7 @@ At the end come 13 ratings of the AI: trust, competence and warmth (3 items each
 
 | Option | Default |
 |---|---|
-| Tool look | **App** (decision software; shows the reply plus only the run type and a run ID, no made-up statistics; the footer shows a fixed placeholder session ID) |
+| Tool look | **App** (decision software; shows only the AI reply, with no run details, IDs, timings or statistics). Also: Light (form), Medium / Full (spreadsheet), Terminal (command line), Notebook (code cells), Report (generated document) |
 | Tool query wording | **Neutral** ("Choose message (A/B): …"), or the chat message word for word |
 | Messaging contact / social cues | Generic "Assistant" / full |
 | Which side the AI recommends | Opposite to the first answer |
