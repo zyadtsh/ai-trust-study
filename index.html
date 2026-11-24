@@ -15,6 +15,8 @@
 
   <!-- Classic scripts (no modules) so the page also works when opened straight from disk. -->
   <script src="config.js"></script>
+  <!-- Optional, not in git: settings you don't want public in the repo (e.g. the data endpoint). -->
+  <script src="config.local.js" onerror="this.remove()"></script>
   <script src="js/util.js"></script>
   <script src="js/data.js"></script>
   <script src="js/frames.js"></script>

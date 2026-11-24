@@ -2,3 +2,4 @@
 .claude/
 *.csv
 site/
+config.local.js

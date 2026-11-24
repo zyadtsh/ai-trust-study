@@ -8,7 +8,7 @@ It never calls an AI model: every AI reply is pre-written in `config.js`. Partic
 
 ## Before sending the link (checklist)
 
-1. **Set up the Google Sheet endpoint** (next section) and paste its URL into `config.js` → `dataCollection.endpoint`.
+1. **Set up the Google Sheet endpoint** (next section) and put its URL in `config.local.js` (kept out of git) or `config.js` → `dataCollection.endpoint`.
 2. **Set your contact email** in `config.js` → `dataCollection.contact`. Participants see it on the first and last screen.
 3. **Host the participant files** somewhere neutral (see *Hosting*), then make the GitHub repo private and turn off GitHub Pages.
 4. **Test once** with `?new=1` on the hosted link. Check that a row appears in the Sheet and that the last screen says "Your answers have been saved". If it says they could not be sent, the deployment is probably not set to *Anyone*.
@@ -29,7 +29,11 @@ Open the study with `?review=1`: a red box at the top lists what is still missin
    - **Who has access:** Anyone
 
    Click **Deploy** and allow access. Google warns that the app isn't verified; it's your own script, so choose **Advanced → Go to … (unsafe)**.
-4. Copy the **Web app URL**, which ends in `/exec`, into `config.js` → `dataCollection.endpoint`.
+4. Copy the **Web app URL**, which ends in `/exec`. To keep it out of the GitHub repo, put it in **`config.local.js`** (git ignores this file; `make-site.sh` copies it into `site/`):
+   ```js
+   window.STUDY_CONFIG.dataCollection.endpoint = "https://script.google.com/macros/s/…/exec";
+   ```
+   Or put it straight into `config.js` → `dataCollection.endpoint` if the repo is private. Your teammate needs their own copy of `config.local.js` to send data from their checkout.
 5. Check it works:
    - Opening the URL in a browser should show `{"ok":true,"service":"study data endpoint"}`.
    - Take the study once with `?new=1`. A row appears in the Sheet's **sessions** tab.
