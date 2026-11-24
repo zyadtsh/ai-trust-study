@@ -10,7 +10,7 @@
    ========================================================================= */
 window.STUDY_CONFIG = {
   studyTitle: "Decision study",   // neutral on purpose: does not reveal the interface manipulation
-  version: "1.2-pilot",   // 1.1: answer scale 0–100, no made-up run details, neutral Tool query. Change this whenever items, text or settings change during data collection
+  version: "1.2-pilot",   // 1.1: answer scale 0–100, neutral Tool query. 1.2: no run details in the Tool; Terminal, Notebook and Report looks. Change this whenever items, text or settings change during data collection
 
   /* -----------------------------------------------------------------------
      DATA COLLECTION (remote participants)
