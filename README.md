@@ -128,7 +128,7 @@ If something in `config.js` is broken, a red box at the top of the page lists th
 ## How one decision works
 
 1. Read the scenario and the two options. The left panel is identical in both conditions.
-2. **First answer** on a 0–10 slider ("Definitely A" … "Definitely B"). There's no handle until it's clicked.
+2. **First answer** on a 0–100 slider ("Definitely A" … "Definitely B"). There's no handle until it's clicked.
 3. **Get the recommendation:** "Ask" (Messaging) or "Run analysis" (Tool). Both wait the same 2.5 s.
 4. **Reply:** the same words in both interfaces.
 5. **Final answer** on the same slider. It starts at the first answer, with a marker there.
@@ -142,7 +142,8 @@ At the end come 13 ratings of the AI: trust, competence and warmth (3 items each
 
 | Option | Default |
 |---|---|
-| Tool look | **App** (with made-up "Run details" statistics; see the note in reviewer mode) |
+| Tool look | **App** (decision software; shows the reply plus only the run type and a run ID, no made-up statistics; the footer shows a fixed placeholder session ID) |
+| Tool query wording | **Neutral** ("Choose message (A/B): …"), or the chat message word for word |
 | Messaging contact / social cues | Generic "Assistant" / full |
 | Which side the AI recommends | Opposite to the first answer |
 | Lean as a number | Off |
@@ -168,8 +169,8 @@ At the end come 13 ratings of the AI: trust, competence and warmth (3 items each
 
 - **Who and which condition:** `participant_id`, `session_id`, `interface`, `decision_type`, `topic_pair`, `item_id`, `trial_number`.
 - **Answers:**
-  - `first_answer`, `final_answer` (0–10).
-  - `ai_recommended`, `ai_position` (8 for B, 2 for A).
+  - `first_answer`, `final_answer` (0–100).
+  - `ai_recommended`, `ai_position` (80 for B, 20 for A).
   - `moved_toward_ai`.
   - `weight_of_advice` (limited to 0–1) and `weight_of_advice_uncapped`.
   - `switched_to_ai`.
@@ -188,7 +189,7 @@ At the end come 13 ratings of the AI: trust, competence and warmth (3 items each
 - a non-blank `settings_changed`;
 - `pid_prior_sessions > 0` or `prior_sessions_in_browser > 0`;
 - very fast sessions (the dashboard flags under 6 minutes);
-- first answers of exactly 5.
+- first answers of exactly 50.
 
 No names, emails or IP addresses are collected, and there are no free-text answers. The exception is a participant who emails their answers file or participation code: save what you need, then delete the email.
 
@@ -198,7 +199,7 @@ No names, emails or IP addresses are collected, and there are no free-text answe
 
 1. The AI's words, delay, font size and the left panel are identical in both conditions. Only the right-hand interface differs.
 2. The AI text avoids "I" and "we", so the same words read naturally in a chat bubble and in tool output.
-3. The Tool's query box shows the chat message word for word, so the inputs are identical.
+3. The Tool's query box shows a neutral line ("Choose message (A/B): …") instead of the first-person chat message; switchable in reviewer mode.
 4. Each decision starts fresh: a new conversation or a new analysis.
 5. Replies appear all at once after the delay. End questions come in a fixed order.
 6. Every question is required. There's no back button and no free text.

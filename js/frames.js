@@ -137,7 +137,8 @@
   /* Tool                                                                */
   /* ================================================================== */
   function queryText(ctx) {
-    return ctx.item.askText;   // always the chat message, word for word
+    // Neutral tool-style wording by default; "same" shows the chat message word for word.
+    return ctx.options.toolQuery !== 'same' && ctx.item.toolQuery ? ctx.item.toolQuery : ctx.item.askText;
   }
 
   function tool(ctx) {
@@ -344,23 +345,15 @@
       var row = function (k, v) { return '<tr><th>' + esc(k) + '</th><td>' + v + '</td></tr>'; };
       if (turn.shown) {
         var text = ctx.turnText(turn);
-        var seed = hash(item.id + ':' + turn.kind);
-        var fieldCount = 1 + (item.attributes || []).length + ((item.attributes || []).length ? 1 : 0);
-        var words = String(text).split(/\s+/).filter(Boolean).length;
-        var S = a.stats;
+        // Only neutral run information: no made-up statistics and no restated pick,
+        // so the Tool carries the same information as the Messaging reply.
         panel = '<div class="ap-report" data-latest>' +
           '<div class="ap-res-label">' + esc(a.rationaleLabel) + '</div>' +
           '<div class="run-body">' + U.paras(text) + '</div>' +
           '<div class="ap-res-label ap-res-label--details">' + esc(a.detailsLabel) + '</div>' +
           '<table class="ap-fields">' +
             row(a.typeLabel, esc(type)) +
-            (turn.kind === 'main' ? row(a.recommendedLabel, '<b>' + esc(recLabel(ctx)) + '</b>') : '') +
             row(a.runLabel, esc(runId(item.id, idx + 1)) + ' · ' + esc(secs(turn))) +
-            row(S.inputs, esc(U.fill(S.inputsValue, { options: 2, fields: fieldCount * 2 }))) +
-            row(S.factors, esc(String(6 + seed % 9))) +
-            row(S.comparisons, esc(String(40 + seed % 160))) +
-            row(S.tokens, esc(U.fill(S.tokensValue, { n: 180 + seed % 140, out: Math.round(words * 1.33) }))) +
-            row(S.compute, esc((0.3 + (seed % 90) / 100).toFixed(2) + ' ' + S.computeUnit)) +
           '</table>' +
         '</div>';
       } else {
@@ -384,8 +377,8 @@
     return ((turn.shown_at - turn.requested_at) / 1000).toFixed(1) + ' s';
   }
 
-  /* Small stable hash, so made-up IDs and statistics are the same for every
-     participant who sees a given item (never random per person). */
+  /* Small stable hash, so the run ID is the same for every participant who sees
+     a given item (never random per person). */
   function hash(s) {
     var h = 0; s = String(s);
     for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;

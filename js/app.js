@@ -888,7 +888,7 @@
       if (seen[it.id]) p.push(where + ': duplicate id.');
       seen[it.id] = true;
       if (['practice', 'emotional', 'analytical'].indexOf(it.type) < 0) p.push(where + ': type must be practice, emotional or analytical.');
-      ['title', 'scenario', 'question', 'askText'].forEach(function (f) { if (!it[f]) p.push(where + ': missing ' + f + '.'); });
+      ['title', 'scenario', 'question', 'askText', 'toolQuery'].forEach(function (f) { if (!it[f]) p.push(where + ': missing ' + f + '.'); });
       ['optionA', 'optionB'].forEach(function (f) {
         if (!it[f] || !it[f].label || !it[f].name || !it[f].text) p.push(where + ': ' + f + ' needs label, name and text.');
       });
